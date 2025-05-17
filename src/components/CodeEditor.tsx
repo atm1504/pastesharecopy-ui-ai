@@ -51,6 +51,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const formSchema = z.object({
   expiration: z.string().min(1),
@@ -517,25 +518,26 @@ const PasteCodeEditor: React.FC = () => {
                 </Button>
               </div>
             </div>
-            <div className="min-h-[500px] max-h-[80vh] relative">
-              <CodeEditor
-                value={code}
-                language={language}
-                placeholder="Paste your code or start typing..."
-                onChange={(e) => setCode(e.target.value)}
-                padding={15}
-                style={{
-                  fontSize: "1rem",
-                  fontFamily: "'JetBrains Mono', monospace",
-                  backgroundColor: "#151520",
-                  minHeight: "500px",
-                  borderRadius: "0 0 0.5rem 0.5rem",
-                  height: "100%",
-                }}
-                className="min-h-[500px] w-full outline-none resize-none"
-                data-color-mode="dark"
-              />
-            </div>
+            <ScrollArea className="h-[500px]">
+              <div className="relative">
+                <CodeEditor
+                  value={code}
+                  language={language}
+                  placeholder="Paste your code or start typing..."
+                  onChange={(e) => setCode(e.target.value)}
+                  padding={15}
+                  style={{
+                    fontSize: "1rem",
+                    fontFamily: "'JetBrains Mono', monospace",
+                    backgroundColor: "#151520",
+                    minHeight: "500px",
+                    height: "100%",
+                  }}
+                  className="w-full outline-none resize-none"
+                  data-color-mode="dark"
+                />
+              </div>
+            </ScrollArea>
           </TabsContent>
           
           <TabsContent value="preview" className="mt-0">
@@ -552,11 +554,13 @@ const PasteCodeEditor: React.FC = () => {
                 <span className="text-xs">Edit</span>
               </Button>
             </div>
-            <div className="p-4 bg-[#151520] min-h-[500px] max-h-[80vh] overflow-auto">
-              <pre className="text-white font-mono text-sm">
-                <code>{code}</code>
-              </pre>
-            </div>
+            <ScrollArea className="h-[500px]">
+              <div className="p-4 bg-[#151520]">
+                <pre className="text-white font-mono text-sm">
+                  <code>{code}</code>
+                </pre>
+              </div>
+            </ScrollArea>
           </TabsContent>
         </div>
         
