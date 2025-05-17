@@ -25,6 +25,15 @@ const NavBar: React.FC<NavBarProps> = ({ onViewLinksClick }) => {
     de: "Deutsch",
     zh: "中文",
     ja: "日本語",
+    hi: "हिन्दी",
+    ar: "العربية",
+    ru: "Русский",
+    pt: "Português",
+    ko: "한국어",
+    it: "Italiano",
+    nl: "Nederlands",
+    tr: "Türkçe",
+    pl: "Polski"
   };
   
   const handleLanguageChange = (lang: string) => {
@@ -68,12 +77,15 @@ const NavBar: React.FC<NavBarProps> = ({ onViewLinksClick }) => {
           <div className="flex items-center gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
+                <Button variant="ghost" size="icon" className="relative">
                   <Globe className="h-4 w-4" />
                   <span className="sr-only">Language</span>
+                  <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-primary rounded-full flex items-center justify-center">
+                    <span className="text-[9px] font-bold text-primary-foreground">{language.toUpperCase().substring(0, 2)}</span>
+                  </div>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent align="end" className="w-56 max-h-80 overflow-y-auto">
                 {Object.entries(languages).map(([code, name]) => (
                   <DropdownMenuItem 
                     key={code} 

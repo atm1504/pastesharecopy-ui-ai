@@ -11,7 +11,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-const PricingSection: React.FC = () => {
+interface PricingProps {
+  onUpgradeClick?: (planName: string) => void;
+}
+
+const PricingSection: React.FC<PricingProps> = ({ onUpgradeClick }) => {
   const pricingPlans = [
     {
       name: "Free",
@@ -26,6 +30,7 @@ const PricingSection: React.FC = () => {
       ],
       cta: "Get Started",
       popular: false,
+      billing: "",
     },
     {
       name: "Premium",
@@ -43,6 +48,25 @@ const PricingSection: React.FC = () => {
       ],
       cta: "Upgrade Now",
       popular: true,
+      billing: "Billed monthly",
+    },
+    {
+      name: "Premium Plus",
+      price: "$9.99",
+      period: "per month",
+      description: "For power users who need more features.",
+      features: [
+        "All Premium features",
+        "Priority support",
+        "Custom domain",
+        "Advanced API access",
+        "Paste versioning",
+        "Enhanced security",
+        "Private team sharing",
+      ],
+      cta: "Upgrade Now",
+      popular: false,
+      billing: "Billed monthly",
     },
     {
       name: "Enterprise",
@@ -54,12 +78,13 @@ const PricingSection: React.FC = () => {
         "Team workspaces",
         "Custom branding",
         "Permanent pastes",
-        "API access",
+        "Full API access",
         "Priority support",
         "Advanced security",
       ],
       cta: "Contact Sales",
       popular: false,
+      billing: "Billed annually",
     },
   ];
 
@@ -74,7 +99,7 @@ const PricingSection: React.FC = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8">
           {pricingPlans.map((plan) => (
             <Card 
               key={plan.name} 
@@ -99,6 +124,9 @@ const PricingSection: React.FC = () => {
                     </span>
                   )}
                 </div>
+                {plan.billing && (
+                  <span className="text-xs text-muted-foreground">{plan.billing}</span>
+                )}
                 <CardDescription className="mt-2">{plan.description}</CardDescription>
               </CardHeader>
               <CardContent className="flex-1">
@@ -117,6 +145,7 @@ const PricingSection: React.FC = () => {
                     plan.popular ? "bg-primary hover:bg-primary/90" : ""
                   }`}
                   variant={plan.popular ? "default" : "outline"}
+                  onClick={() => onUpgradeClick && onUpgradeClick(plan.name)}
                 >
                   {plan.cta}
                 </Button>

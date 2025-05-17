@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import CodeEditor from "@uiw/react-textarea-code-editor";
 import { Button } from "@/components/ui/button";
@@ -308,7 +307,19 @@ const languageOptions = [
   { value: "php", label: "PHP" },
   { value: "swift", label: "Swift" },
   { value: "csharp", label: "C#" },
-  { value: "sql", label: "SQL" }
+  { value: "sql", label: "SQL" },
+  { value: "c", label: "C" },
+  { value: "cpp", label: "C++" },
+  { value: "dart", label: "Dart" },
+  { value: "kotlin", label: "Kotlin" },
+  { value: "scala", label: "Scala" },
+  { value: "haskell", label: "Haskell" },
+  { value: "bash", label: "Bash" },
+  { value: "yaml", label: "YAML" },
+  { value: "xml", label: "XML" },
+  { value: "graphql", label: "GraphQL" },
+  { value: "r", label: "R" },
+  { value: "powershell", label: "PowerShell" },
 ];
 
 // AI services to directly paste to
@@ -409,18 +420,31 @@ const PasteCodeEditor: React.FC = () => {
     }
   };
   
-  const handleAIPaste = (service: { id: string, name: string, url: string }) => {
-    const aiWindow = window.open(service.url, '_blank');
-    if (aiWindow) {
+  const handleAIPaste = async (service: { id: string, name: string, url: string }) => {
+    // First, copy the code to clipboard
+    try {
+      await navigator.clipboard.writeText(code);
+      
+      // Then open the AI service in a new tab
+      const aiWindow = window.open(service.url, '_blank');
+      if (aiWindow) {
+        toast({
+          title: `Code copied for ${service.name}!`,
+          description: "Just paste it (Ctrl+V/Cmd+V) in the chat",
+        });
+      } else {
+        toast({
+          title: `Code copied for ${service.name}!`,
+          description: "Popup blocked, but you can still paste the code manually",
+        });
+      }
+    } catch (err) {
       toast({
-        title: `${service.name} opened!`,
-        description: "Your code is ready to be pasted",
+        title: "Failed to copy code",
+        description: "Please try again or copy manually",
+        variant: "destructive",
       });
-    } else {
-      copyToClipboard(
-        code,
-        `Popup blocked. We've copied your code - paste it into ${service.name} manually.`
-      );
+      console.error("Error copying code:", err);
     }
   };
 
@@ -473,7 +497,7 @@ const PasteCodeEditor: React.FC = () => {
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>Open in {service.name}</p>
+                        <p>Copy & open in {service.name}</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
@@ -639,6 +663,13 @@ const PasteCodeEditor: React.FC = () => {
                     Created
                   </span>
                   <span className="font-medium">Just now</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground flex items-center">
+                    <Share2 size={14} className="mr-2" />
+                    Total Shares
+                  </span>
+                  <span className="font-medium">4.7M+</span>
                 </div>
               </div>
             </CardContent>

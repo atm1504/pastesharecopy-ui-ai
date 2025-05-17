@@ -44,6 +44,7 @@ const HeroSection: React.FC = () => {
                     <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
                     <div className="w-3 h-3 rounded-full bg-green-500"></div>
                   </div>
+                  <div className="ml-4 text-xs text-slate-400">pastesharecopy.com - React Component</div>
                 </div>
               </div>
               <div className="bg-[#151520] text-slate-100 p-4 font-mono text-sm overflow-auto">
@@ -54,13 +55,31 @@ const HeroSection: React.FC = () => {
                     <div>3</div>
                     <div>4</div>
                     <div>5</div>
+                    <div>6</div>
+                    <div>7</div>
+                    <div>8</div>
+                    <div>9</div>
+                    <div>10</div>
+                    <div>11</div>
+                    <div>12</div>
+                    <div>13</div>
                   </div>
                   <div>
-                    <div><span className="text-[#ff79c6]">function</span> <span className="text-[#8be9fd]">createPaste</span>() {"{"}</div>
-                    <div>&nbsp;&nbsp;<span className="text-[#ff79c6]">const</span> code = <span className="text-[#f1fa8c]">"Your awesome code here"</span>;</div>
-                    <div>&nbsp;&nbsp;<span className="text-[#ff79c6]">const</span> link = <span className="text-[#bd93f9]">generateUniqueLink</span>();</div>
-                    <div>&nbsp;&nbsp;<span className="text-[#ff79c6]">return</span> link;</div>
-                    <div>{"}"}</div>
+                    <div><span className="text-[#ff79c6]">import</span> <span className="text-[#f8f8f2]">React</span> <span className="text-[#ff79c6]">from</span> <span className="text-[#f1fa8c]">'react'</span>;</div>
+                    <div>&nbsp;</div>
+                    <div><span className="text-[#ff79c6]">const</span> <span className="text-[#50fa7b]">CodeShare</span> <span className="text-[#ff79c6]">=</span> <span className="text-[#f8f8f2]">()</span> <span className="text-[#ff79c6]">=></span> <span className="text-[#f8f8f2]">{"{"}</span></div>
+                    <div>&nbsp;&nbsp;<span className="text-[#ff79c6]">const</span> <span className="text-[#f8f8f2]">[code, setCode]</span> <span className="text-[#ff79c6]">=</span> <span className="text-[#50fa7b]">useState</span><span className="text-[#f8f8f2]">(</span><span className="text-[#f1fa8c]">""</span><span className="text-[#f8f8f2]">);</span></div>
+                    <div>&nbsp;&nbsp;<span className="text-[#ff79c6]">const</span> <span className="text-[#f8f8f2]">shareCode</span> <span className="text-[#ff79c6]">=</span> <span className="text-[#f8f8f2]">()</span> <span className="text-[#ff79c6]">=></span> <span className="text-[#f8f8f2]">{"{"}</span></div>
+                    <div>&nbsp;&nbsp;&nbsp;&nbsp;<span className="text-[#ff79c6]">return</span> <span className="text-[#f1fa8c]">`https://pastesharecopy.com/${</span><span className="text-[#bd93f9]">generateId</span><span className="text-[#f1fa8c]">()}`</span><span className="text-[#f8f8f2]">;</span></div>
+                    <div>&nbsp;&nbsp;<span className="text-[#f8f8f2]">{"}"}</span></div>
+                    <div>&nbsp;</div>
+                    <div>&nbsp;&nbsp;<span className="text-[#ff79c6]">return</span> <span className="text-[#f8f8f2]">(</span></div>
+                    <div>&nbsp;&nbsp;&nbsp;&nbsp;<span className="text-[#ff79c6]">&lt;</span><span className="text-[#8be9fd]">div</span> <span className="text-[#50fa7b]">className</span><span className="text-[#ff79c6]">=</span><span className="text-[#f1fa8c]">"code-editor"</span><span className="text-[#ff79c6]">></span></div>
+                    <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="text-[#ff79c6]">&lt;</span><span className="text-[#8be9fd]">textarea</span> <span className="text-[#50fa7b]">onChange</span><span className="text-[#ff79c6]">=</span><span className="text-[#f1fa8c]">{"{"}(e) => </span><span className="text-[#50fa7b]">setCode</span><span className="text-[#f1fa8c]">(e.target.value){"}"}</span> <span className="text-[#50fa7b]">value</span><span className="text-[#ff79c6]">=</span><span className="text-[#f1fa8c]">{"{"}code{"}"}</span><span className="text-[#ff79c6]">/></span></div>
+                    <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="text-[#ff79c6]">&lt;</span><span className="text-[#8be9fd]">button</span> <span className="text-[#50fa7b]">onClick</span><span className="text-[#ff79c6]">=</span><span className="text-[#f1fa8c]">{"{"}shareCode{"}"}</span><span className="text-[#ff79c6]">></span><span className="text-[#f8f8f2]">Share Code</span><span className="text-[#ff79c6]">&lt;/</span><span className="text-[#8be9fd]">button</span><span className="text-[#ff79c6]">></span></div>
+                    <div>&nbsp;&nbsp;&nbsp;&nbsp;<span className="text-[#ff79c6]">&lt;/</span><span className="text-[#8be9fd]">div</span><span className="text-[#ff79c6]">></span></div>
+                    <div>&nbsp;&nbsp;<span className="text-[#f8f8f2]">);</span></div>
+                    <div><span className="text-[#f8f8f2]">{"}"}</span></div>
                   </div>
                 </div>
               </div>
