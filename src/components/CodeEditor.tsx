@@ -46,6 +46,11 @@ import {
   CardHeader,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { marked } from "marked";
+import DOMPurify from "dompurify";
+import parse from "html-react-parser";
+import hljs from "highlight.js";
+import "highlight.js/styles/atom-one-dark.css";
 
 const formSchema = z.object({
   expiration: z.string().min(1),
@@ -332,12 +337,218 @@ const pasteStats = {
   expiresAt: null,
 };
 
+// Code validation helper functions
+const validateCode = (
+  code: string,
+  language: string
+): { isValid: boolean; error?: string } => {
+  // Simple validation for various languages
+  try {
+    switch (language) {
+      case "javascript":
+      case "typescript":
+      case "jsx":
+        // Basic JS validation by attempting to parse
+        new Function(code);
+        return { isValid: true };
+
+      case "json":
+        // JSON validation
+        JSON.parse(code);
+        return { isValid: true };
+
+      case "html":
+        // Basic HTML validation (very simple check)
+        if (code.includes("<html") && !code.includes("</html>")) {
+          return { isValid: false, error: "Missing closing HTML tag" };
+        }
+        return { isValid: true };
+
+      case "css":
+        // Basic CSS validation (just checking for matching braces)
+        if (
+          (code.match(/{/g) || []).length !== (code.match(/}/g) || []).length
+        ) {
+          return { isValid: false, error: "Mismatched braces in CSS" };
+        }
+        return { isValid: true };
+
+      default:
+        // For other languages, just return valid as we don't have simple validators
+        return { isValid: true };
+    }
+  } catch (error) {
+    return {
+      isValid: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+};
+
+// Preview renderer based on language
+const renderPreview = (code: string, language: string) => {
+  if (!code) return null;
+
+  let sanitizedHtml = "";
+  let formattedJson = "";
+  let highlightedCode = "";
+
+  switch (language) {
+    case "markdown":
+      // Render markdown to HTML
+      try {
+        // Use marked to convert markdown to HTML synchronously
+        marked.setOptions({ async: false });
+        sanitizedHtml = DOMPurify.sanitize(marked.parse(code));
+
+        return (
+          <div className="markdown-preview prose prose-invert max-w-none">
+            <div dangerouslySetInnerHTML={{ __html: sanitizedHtml }} />
+          </div>
+        );
+      } catch (error) {
+        return (
+          <div className="text-red-500">
+            Error rendering Markdown: {String(error)}
+          </div>
+        );
+      }
+
+    case "html":
+      // Render HTML with sanitization
+      try {
+        sanitizedHtml = DOMPurify.sanitize(code);
+        return (
+          <div className="html-preview">
+            <div className="border-b border-border mb-4 pb-2 text-xs text-muted-foreground">
+              HTML Preview (sanitized)
+            </div>
+            <div className="html-render border p-4 bg-white text-black rounded">
+              {parse(sanitizedHtml)}
+            </div>
+            <div className="mt-4 border-t border-border pt-4">
+              <div className="text-xs text-muted-foreground mb-2">
+                HTML Source:
+              </div>
+              <pre className="text-white font-mono text-sm overflow-auto">
+                {code.split("\n").map((line, i) => (
+                  <div key={i} className="h-[1.5rem] flex items-center">
+                    {line}
+                  </div>
+                ))}
+              </pre>
+            </div>
+          </div>
+        );
+      } catch (error) {
+        return (
+          <div className="text-red-500">
+            Error rendering HTML: {String(error)}
+          </div>
+        );
+      }
+
+    case "json":
+      // Pretty-print JSON
+      try {
+        formattedJson = JSON.stringify(JSON.parse(code), null, 2);
+        return (
+          <div className="json-preview">
+            <div className="border-b border-border mb-4 pb-2 text-xs text-muted-foreground">
+              Formatted JSON
+            </div>
+            <pre className="text-white font-mono text-sm overflow-auto">
+              {formattedJson.split("\n").map((line, i) => (
+                <div key={i} className="h-[1.5rem] flex items-center">
+                  {line}
+                </div>
+              ))}
+            </pre>
+          </div>
+        );
+      } catch (error) {
+        return (
+          <div className="text-red-500">
+            Error formatting JSON: {String(error)}
+          </div>
+        );
+      }
+
+    default:
+      // For other languages, use syntax highlighting
+      try {
+        highlightedCode = language
+          ? hljs.highlight(code, { language: language }).value
+          : hljs.highlightAuto(code).value;
+
+        return (
+          <div className="code-preview">
+            <div className="border-b border-border mb-4 pb-2 text-xs text-muted-foreground">
+              Syntax Highlighted Code
+            </div>
+            <pre className="text-white font-mono text-sm overflow-auto">
+              <div className="flex">
+                <div className="pr-4 text-right select-none text-muted-foreground w-10 flex flex-col">
+                  {code.split("\n").map((_, i) => (
+                    <div
+                      key={i}
+                      className="h-[1.5rem] flex items-center justify-end"
+                    >
+                      {i + 1}
+                    </div>
+                  ))}
+                </div>
+                <div className="pl-4 border-l border-muted-foreground/20 flex flex-col">
+                  <code
+                    dangerouslySetInnerHTML={{
+                      __html: highlightedCode,
+                    }}
+                    className={`language-${language} hljs`}
+                  />
+                </div>
+              </div>
+            </pre>
+          </div>
+        );
+      } catch (error) {
+        // Fallback to regular code display
+        return (
+          <pre className="text-white font-mono text-sm flex">
+            <div className="pr-4 text-right select-none text-muted-foreground w-10 flex flex-col">
+              {code.split("\n").map((_, i) => (
+                <div
+                  key={i}
+                  className="h-[1.5rem] flex items-center justify-end"
+                >
+                  {i + 1}
+                </div>
+              ))}
+            </div>
+            <div className="pl-4 border-l border-muted-foreground/20 flex flex-col">
+              {code.split("\n").map((line, i) => (
+                <div key={i} className="h-[1.5rem] flex items-center">
+                  {line}
+                </div>
+              ))}
+            </div>
+          </pre>
+        );
+      }
+  }
+};
+
 const PasteCodeEditor: React.FC = () => {
   const [code, setCode] = useState<string>("");
   const [language, setLanguage] = useState<string>("javascript");
   const [isGeneratingLink, setIsGeneratingLink] = useState<boolean>(false);
   const [generatedLink, setGeneratedLink] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>("editor");
+  const [validation, setValidation] = useState<{
+    isValid: boolean;
+    error?: string;
+  }>({
+    isValid: true,
+  });
 
   const { toast } = useToast();
 
@@ -366,6 +577,16 @@ const PasteCodeEditor: React.FC = () => {
       setCode(sample);
     }
   }, [language, code]);
+
+  // Add validation when code changes
+  useEffect(() => {
+    if (code.trim()) {
+      const result = validateCode(code, language);
+      setValidation(result);
+    } else {
+      setValidation({ isValid: true });
+    }
+  }, [code, language]);
 
   const handleLanguageChange = (value: string) => {
     setLanguage(value);
@@ -508,6 +729,23 @@ const PasteCodeEditor: React.FC = () => {
             <div className="code-header flex items-center justify-between p-2">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-mono">{language}</span>
+                {/* Show validation status */}
+                {code.trim() && (
+                  <span
+                    className={`text-xs px-2 py-0.5 rounded ${
+                      validation.isValid
+                        ? "bg-green-500/20 text-green-400"
+                        : "bg-red-500/20 text-red-400"
+                    }`}
+                  >
+                    {validation.isValid ? "Valid" : "Invalid"}
+                  </span>
+                )}
+                {!validation.isValid && (
+                  <span className="text-xs text-red-400">
+                    {validation.error}
+                  </span>
+                )}
               </div>
               <div className="flex gap-1">
                 {aiServices.map((service) => (
@@ -588,6 +826,17 @@ const PasteCodeEditor: React.FC = () => {
             <div className="code-header flex items-center justify-between p-2">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-mono">Preview</span>
+                <span className="text-xs text-muted-foreground">
+                  {language === "markdown"
+                    ? "Rendered Markdown"
+                    : language === "html"
+                    ? "Rendered HTML"
+                    : language === "css"
+                    ? "Styled Elements"
+                    : language === "json"
+                    ? "Formatted JSON"
+                    : "Syntax Highlighted"}
+                </span>
               </div>
               <Button
                 size="sm"
@@ -599,25 +848,8 @@ const PasteCodeEditor: React.FC = () => {
               </Button>
             </div>
             <div className="p-4 bg-[#151520] min-h-[65vh] overflow-auto">
-              <pre className="text-white font-mono text-sm flex">
-                <div className="pr-4 text-right select-none text-muted-foreground w-10 flex flex-col">
-                  {code.split("\n").map((_, i) => (
-                    <div
-                      key={i}
-                      className="h-[1.5rem] flex items-center justify-end"
-                    >
-                      {i + 1}
-                    </div>
-                  ))}
-                </div>
-                <div className="pl-4 border-l border-muted-foreground/20 flex flex-col">
-                  {code.split("\n").map((line, i) => (
-                    <div key={i} className="h-[1.5rem] flex items-center">
-                      {line}
-                    </div>
-                  ))}
-                </div>
-              </pre>
+              {/* Language-specific preview */}
+              {renderPreview(code, language)}
             </div>
           </TabsContent>
         </div>
