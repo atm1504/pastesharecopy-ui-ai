@@ -2,8 +2,11 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 const HeroSection: React.FC = () => {
+  const { t } = useTranslation();
+
   return (
     <div className="relative overflow-hidden">
       {/* Background pattern */}
@@ -14,22 +17,20 @@ const HeroSection: React.FC = () => {
           <div className="flex flex-col items-center text-center">
             <div className="max-w-4xl">
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight mb-6 bg-gradient-to-r from-primary to-indigo-500 bg-clip-text text-transparent">
-                Share Code Snippets with Ease
+                {t("hero.title")}
               </h1>
               <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
-                Create, share, and store your code snippets in seconds. Perfect
-                syntax highlighting, with powerful features to make sharing your
-                code effortless.
+                {t("hero.description")}
               </p>
               <div className="flex flex-wrap justify-center gap-4">
                 <Button asChild size="lg" className="gap-2">
                   <Link to="/">
-                    Start Pasting
+                    {t("actions.startPasting")}
                     <ArrowRight size={16} />
                   </Link>
                 </Button>
                 <Button asChild size="lg" variant="outline">
-                  <Link to="/pricing">View Plans</Link>
+                  <Link to="/pricing">{t("actions.viewPlans")}</Link>
                 </Button>
               </div>
             </div>
@@ -38,7 +39,7 @@ const HeroSection: React.FC = () => {
               <div className="rounded-lg overflow-hidden shadow-xl border border-border/50">
                 <img
                   src="/images/code-screenshot.svg"
-                  alt="Code editor screenshot"
+                  alt={t("general.appName") + " " + t("general.tagline")}
                   className="w-full h-auto"
                 />
               </div>

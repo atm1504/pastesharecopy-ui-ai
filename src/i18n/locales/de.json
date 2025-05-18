@@ -1,0 +1,142 @@
+{
+  "general": {
+    "appName": "PasteShareCopy",
+    "tagline": "Code-Snippets Einfach Teilen",
+    "404": "404",
+    "pageNotFound": "Ups! Seite nicht gefunden",
+    "returnHome": "Zurück zur Startseite",
+    "github": "GitHub",
+    "language": "Sprache",
+    "toggleTheme": "Theme wechseln",
+    "close": "Schließen"
+  },
+  "hero": {
+    "title": "Code-Snippets Einfach Teilen",
+    "description": "Erstellen, teilen und speichern Sie Ihre Code-Snippets in Sekunden. Perfekte Syntaxhervorhebung mit leistungsstarken Funktionen für müheloses Teilen Ihres Codes."
+  },
+  "navigation": {
+    "home": "Startseite",
+    "features": "Funktionen",
+    "pricing": "Preise",
+    "docs": "Dokumentation",
+    "login": "Anmelden",
+    "signup": "Registrieren",
+    "dashboard": "Dashboard",
+    "settings": "Einstellungen",
+    "products": "Produkt",
+    "resources": "Ressourcen",
+    "company": "Unternehmen",
+    "about": "Über uns",
+    "blog": "Blog",
+    "careers": "Karriere",
+    "contact": "Kontakt",
+    "guides": "Anleitungen",
+    "support": "Support",
+    "status": "Status",
+    "integrations": "Integrationen",
+    "terms": "Nutzungsbedingungen",
+    "privacy": "Datenschutz",
+    "cookies": "Cookies",
+    "copyright": "Alle Rechte vorbehalten.",
+    "yourSharedLinks": "Ihre geteilten Links",
+    "openLink": "Link öffnen"
+  },
+  "actions": {
+    "startPasting": "Mit Einfügen beginnen",
+    "viewPlans": "Pläne ansehen",
+    "tryNow": "Jetzt testen",
+    "learnMore": "Mehr erfahren",
+    "share": "Teilen",
+    "copy": "Kopieren",
+    "download": "Herunterladen",
+    "save": "Speichern",
+    "edit": "Bearbeiten"
+  },
+  "editor": {
+    "language": "Sprache",
+    "languages": "Sprachen",
+    "theme": "Theme",
+    "fontSize": "Schriftgröße",
+    "lineNumbers": "Zeilennummern",
+    "indentation": "Einrückung",
+    "tabSize": "Tab-Größe",
+    "wrapLines": "Zeilenumbruch",
+    "placeholder": "Fügen Sie Ihren Code hier ein...",
+    "preview": "Vorschau",
+    "htmlPreview": "HTML-Vorschau (bereinigt)",
+    "shareOptions": "Teilen-Optionen",
+    "stats": "Statistiken",
+    "justNow": "Gerade eben",
+    "views": "4.7M+",
+    "errorRenderingMarkdown": "Fehler beim Rendern von Markdown:",
+    "errorRenderingCSS": "Fehler beim Rendern von CSS:",
+    "errorFormattingJSON": "Fehler beim Formatieren von JSON:",
+    "expiration": {
+      "1d": "1 Tag",
+      "2d": "2 Tage",
+      "3d": "3 Tage",
+      "7d": "7 Tage"
+    }
+  },
+  "features": {
+    "title": "Leistungsstarke Funktionen",
+    "subtitle": "Alles, was Sie brauchen, um Ihre Code-Snippets effizient und sicher zu teilen. Wir haben das perfekte Tool für Entwickler von Entwicklern gebaut.",
+    "syntaxHighlighting": {
+      "title": "Syntaxhervorhebung",
+      "description": "Schöne Code-Formatierung mit Unterstützung für über 100 Programmiersprachen."
+    },
+    "easySharing": {
+      "title": "Einfaches Teilen",
+      "description": "Generieren und teilen Sie Links sofort mit jedem, überall."
+    },
+    "flexibleExpiration": {
+      "title": "Flexible Ablaufzeit",
+      "description": "Legen Sie fest, dass Ihr Snippet nach einer bestimmten Zeit abläuft, von 1 Tag bis 1 Jahr."
+    },
+    "passwordProtection": {
+      "title": "Passwortschutz",
+      "description": "Halten Sie Ihren sensiblen Code mit optionalem Passwortschutz sicher."
+    },
+    "multipleThemes": {
+      "title": "Mehrere Themes",
+      "description": "Wählen Sie aus einer Vielzahl von Themes, damit Ihr Code perfekt aussieht."
+    },
+    "lightningFast": {
+      "title": "Blitzschnell",
+      "description": "Unsere optimierte Plattform stellt sicher, dass Ihre Snippets jedes Mal sofort geladen werden."
+    }
+  },
+  "stats": {
+    "title": "Unsere Wirkung in Zahlen",
+    "pastesCreated": "Erstellte Snippets",
+    "dailyUsers": "Tägliche Nutzer",
+    "languages": "Sprachen",
+    "uptime": "Betriebszeit",
+    "linksToday": "Links heute",
+    "viewsToday": "Aufrufe heute",
+    "totalShares": "Gesamte Shares"
+  },
+  "pricing": {
+    "title": "Einfache, Transparente Preise"
+  },
+  "samples": {
+    "welcome": "Willkommen in unserer Anwendung.",
+    "myWebsite": {
+      "title": "Meine Website",
+      "heading": "Willkommen auf meiner Website",
+      "nav": {
+        "home": "Startseite",
+        "about": "Über uns",
+        "contact": "Kontakt"
+      },
+      "content": "Dies ist eine Beispiel-HTML-Seite."
+    },
+    "css": {
+      "boxElement": "Box-Element",
+      "textElement": "Text-Element",
+      "buttonElement": "Button-Element",
+      "cardHeader": "Karten-Header",
+      "cardContent": "Karteninhalt kommt hier"
+    }
+  }
+}
