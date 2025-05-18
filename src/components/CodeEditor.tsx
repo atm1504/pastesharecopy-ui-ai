@@ -53,6 +53,10 @@ import DOMPurify from "dompurify";
 import parse from "html-react-parser";
 import hljs from "highlight.js";
 import "highlight.js/styles/atom-one-dark.css";
+import { useTheme } from "@/hooks/useTheme";
+
+// Import light theme for hljs
+import "highlight.js/styles/github.css";
 
 const formSchema = z.object({
   expiration: z.string().min(1),
@@ -400,17 +404,52 @@ const validateCode = (
   }
 };
 
-// Preview renderer based on language
+// Custom hook for dark mode detection
+const useIsDarkMode = () => {
+  const { theme } = useTheme();
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  useEffect(() => {
+    // Check if it's dark mode based on theme setting
+    const dark =
+      theme === "dark" ||
+      (theme === "system" &&
+        window.matchMedia &&
+        window.matchMedia("(prefers-color-scheme: dark)").matches);
+
+    setIsDarkMode(dark);
+
+    // Add listener for system theme changes if using system setting
+    if (theme === "system") {
+      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+      const handleChange = (e: MediaQueryListEvent) => {
+        setIsDarkMode(e.matches);
+      };
+
+      mediaQuery.addEventListener("change", handleChange);
+      return () => mediaQuery.removeEventListener("change", handleChange);
+    }
+  }, [theme]);
+
+  return isDarkMode;
+};
+
+// Preview renderer based on language - takes isDarkMode as a parameter
 const renderPreview = (
   code: string,
   language: string,
-  validation: { isValid: boolean; error?: string }
+  validation: { isValid: boolean; error?: string },
+  isDarkMode: boolean
 ) => {
   if (!code) return null;
 
   let sanitizedHtml = "";
   let formattedJson = "";
   let highlightedCode = "";
+
+  // Use appropriate highlight.js theme based on mode
+  document.documentElement.classList.toggle("light-code", !isDarkMode);
+  document.documentElement.classList.toggle("dark-code", isDarkMode);
 
   switch (language) {
     case "markdown":
@@ -427,8 +466,21 @@ const renderPreview = (
               </span>
             </div>
 
-            <div className="bg-[#181824] p-4 rounded shadow-sm">
-              <div className="prose prose-invert prose-headings:mt-4 prose-headings:mb-3 prose-p:my-2 prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline prose-code:bg-black/30 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-pink-300 prose-pre:bg-[#0d0d17] prose-pre:p-4 prose-li:my-1 max-w-none">
+            <div
+              style={{ backgroundColor: isDarkMode ? "#181824" : "#fcfcfc" }}
+              className={`p-4 rounded shadow-sm ${
+                !isDarkMode ? "border border-gray-200" : ""
+              }`}
+            >
+              <div
+                className={`${
+                  isDarkMode ? "prose-invert" : "prose"
+                } prose prose-headings:mt-4 prose-headings:mb-3 prose-p:my-2 prose-a:no-underline hover:prose-a:underline prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:p-4 prose-li:my-1 max-w-none ${
+                  isDarkMode
+                    ? "prose-a:text-blue-400 prose-code:bg-black/30 prose-code:text-pink-300 prose-pre:bg-[#0d0d17]"
+                    : "prose-a:text-blue-600 prose-code:bg-gray-100 prose-code:text-gray-800 prose-pre:bg-gray-100 prose-headings:text-gray-900 prose-p:text-gray-700"
+                }`}
+              >
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   rehypePlugins={[rehypeHighlight]}
@@ -460,7 +512,11 @@ const renderPreview = (
                 Live Preview
               </span>
             </div>
-            <div className="html-render border p-4 bg-white text-black rounded shadow-md">
+            <div
+              className={`html-render border p-4 bg-white text-black rounded shadow-md ${
+                !isDarkMode && "border-gray-200"
+              }`}
+            >
               {parse(sanitizedHtml)}
             </div>
           </div>
@@ -543,7 +599,13 @@ const renderPreview = (
                 Validated
               </span>
             </div>
-            <pre className="text-white font-mono text-sm overflow-auto bg-[#181824] p-4 rounded min-h-[71vh]">
+            <pre
+              className={`font-mono text-sm overflow-auto p-4 rounded min-h-[71vh] ${
+                isDarkMode
+                  ? "bg-[#181824] text-white"
+                  : "bg-[#fcfcfc] text-[#333333] border border-gray-200"
+              }`}
+            >
               <code
                 dangerouslySetInnerHTML={{
                   __html: highlightedJson,
@@ -583,7 +645,13 @@ const renderPreview = (
                 {validation.isValid ? "Valid Syntax" : "Syntax Error"}
               </span>
             </div>
-            <pre className="text-white font-mono text-sm overflow-auto bg-[#181824] p-4 rounded min-h-[71vh]">
+            <pre
+              className={`font-mono text-sm overflow-auto p-4 rounded min-h-[71vh] ${
+                isDarkMode
+                  ? "bg-[#181824] text-white"
+                  : "bg-[#fcfcfc] text-[#333333] border border-gray-200"
+              }`}
+            >
               <code
                 dangerouslySetInnerHTML={{
                   __html: highlightedCode,
@@ -596,7 +664,13 @@ const renderPreview = (
       } catch (error) {
         // Fallback to regular code display
         return (
-          <pre className="text-white font-mono text-sm bg-[#181824] p-4 rounded overflow-auto min-h-[71vh]">
+          <pre
+            className={`font-mono text-sm overflow-auto p-4 rounded min-h-[71vh] ${
+              isDarkMode
+                ? "bg-[#181824] text-white"
+                : "bg-[#fcfcfc] text-[#333333] border border-gray-200"
+            }`}
+          >
             <code>{code}</code>
           </pre>
         );
@@ -617,6 +691,7 @@ const PasteCodeEditor: React.FC = () => {
     isValid: true,
   });
 
+  const isDarkMode = useIsDarkMode();
   const { toast } = useToast();
 
   const form = useForm<FormValues>({
@@ -791,7 +866,7 @@ const PasteCodeEditor: React.FC = () => {
 
         <div className="bg-card border rounded-lg shadow-sm overflow-hidden mb-2">
           <TabsContent value="editor" className="mt-0">
-            <div className="code-header flex items-center justify-between p-2">
+            <div className="code-header flex items-center justify-between p-2 border-b">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-mono">{language}</span>
                 {/* Show validation status */}
@@ -853,7 +928,11 @@ const PasteCodeEditor: React.FC = () => {
             </div>
 
             <div className="flex min-h-[71vh] relative">
-              <div className="py-4 bg-[#181824] text-muted-foreground text-right select-none font-mono text-xs w-[3.5rem] overflow-y-hidden flex flex-col">
+              <div
+                className={`py-4 text-muted-foreground text-right select-none font-mono text-xs w-[3.5rem] overflow-y-hidden flex flex-col ${
+                  isDarkMode ? "bg-[#181824]" : "bg-gray-100"
+                }`}
+              >
                 {code.split("\n").map((_, i) => (
                   <div
                     key={i}
@@ -865,7 +944,11 @@ const PasteCodeEditor: React.FC = () => {
                 ))}
               </div>
 
-              <div className="flex-1 relative">
+              <div
+                className={`flex-1 relative ${
+                  !isDarkMode ? "border-l border-gray-200" : ""
+                }`}
+              >
                 <CodeEditor
                   value={code}
                   language={language}
@@ -875,21 +958,22 @@ const PasteCodeEditor: React.FC = () => {
                   style={{
                     fontSize: "1rem",
                     fontFamily: "'JetBrains Mono', monospace",
-                    backgroundColor: "#151520",
+                    backgroundColor: isDarkMode ? "#151520" : "#fcfcfc",
+                    color: isDarkMode ? "#ffffff" : "#333333",
                     height: "100%",
                     borderRadius: "0",
                     minHeight: "71vh",
                     lineHeight: "1.5rem",
                   }}
                   className="w-full outline-none resize-none min-h-[71vh]"
-                  data-color-mode="dark"
+                  data-color-mode={isDarkMode ? "dark" : "light"}
                 />
               </div>
             </div>
           </TabsContent>
 
           <TabsContent value="preview" className="mt-0">
-            <div className="code-header flex items-center justify-between p-2">
+            <div className="code-header flex items-center justify-between p-2 border-b">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-mono">Preview</span>
                 <span className="text-xs text-muted-foreground">
@@ -913,9 +997,17 @@ const PasteCodeEditor: React.FC = () => {
                 <span className="text-xs">Edit</span>
               </Button>
             </div>
-            <div className="p-4 bg-[#151520] min-h-[71vh] overflow-auto">
+            <div
+              style={{
+                backgroundColor: isDarkMode ? "#151520" : "#fcfcfc",
+                boxShadow: isDarkMode
+                  ? "none"
+                  : "inset 0 1px 2px rgba(0,0,0,0.05)",
+              }}
+              className="p-4 min-h-[71vh] overflow-auto"
+            >
               {/* Language-specific preview */}
-              {renderPreview(code, language, validation)}
+              {renderPreview(code, language, validation, isDarkMode)}
             </div>
           </TabsContent>
         </div>
