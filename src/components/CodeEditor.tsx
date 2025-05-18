@@ -624,73 +624,74 @@ const PasteCodeEditor: React.FC = () => {
                 onSubmit={form.handleSubmit(handleGenerateLink)}
                 className="flex flex-wrap items-center gap-3"
               >
-                <div className="flex items-center gap-3 flex-1">
-                  <FormField
-                    control={form.control}
-                    name="expiration"
-                    render={({ field }) => (
-                      <FormItem className="flex-1">
-                        <div className="flex items-center">
-                          <Clock
-                            size={14}
-                            className="mr-2 text-muted-foreground"
-                          />
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                          >
-                            <SelectTrigger className="h-8 text-xs border-0 bg-secondary/30 hover:bg-secondary/50">
-                              <SelectValue placeholder="Expiration" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="1d">1 day</SelectItem>
-                              <SelectItem value="2d">2 days</SelectItem>
-                              <SelectItem value="3d">3 days</SelectItem>
-                              <SelectItem value="7d">7 days</SelectItem>
-                              <SelectItem value="30d" disabled>
-                                30 days (Premium)
-                              </SelectItem>
-                              <SelectItem value="never" disabled>
-                                Never (Premium)
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </FormItem>
-                    )}
-                  />
+                <div className="flex items-center gap-4 flex-1">
+                  <div className="flex items-center gap-2 bg-secondary/20 hover:bg-secondary/30 rounded-md p-1 pl-2 transition-colors">
+                    <FormField
+                      control={form.control}
+                      name="expiration"
+                      render={({ field }) => (
+                        <FormItem className="w-auto flex-shrink-0">
+                          <div className="flex items-center">
+                            <Clock size={15} className="text-primary mr-1.5" />
+                            <Select
+                              onValueChange={field.onChange}
+                              defaultValue={field.value}
+                            >
+                              <SelectTrigger className="h-9 text-sm border-0 bg-transparent hover:bg-secondary/10 w-32 pl-0 rounded-none focus:ring-0 focus:ring-offset-0">
+                                <SelectValue placeholder="Expiration" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="1d">1 day</SelectItem>
+                                <SelectItem value="2d">2 days</SelectItem>
+                                <SelectItem value="3d">3 days</SelectItem>
+                                <SelectItem value="7d">7 days</SelectItem>
+                                <SelectItem value="30d" disabled>
+                                  30 days (Premium)
+                                </SelectItem>
+                                <SelectItem value="never" disabled>
+                                  Never (Premium)
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+                  </div>
 
-                  <FormField
-                    control={form.control}
-                    name="isPasswordProtected"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center gap-1.5 mt-0">
-                        <div className="flex items-center gap-1.5">
-                          <Lock size={14} className="text-muted-foreground" />
-                          <FormLabel className="text-xs cursor-not-allowed text-muted-foreground m-0">
-                            Password
-                          </FormLabel>
-                        </div>
-                        <FormControl>
-                          <Checkbox
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                            disabled={true}
-                            className="h-4 w-4"
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
+                  <div className="flex items-center bg-secondary/20 hover:bg-secondary/30 rounded-md p-1 pl-2 transition-colors">
+                    <FormField
+                      control={form.control}
+                      name="isPasswordProtected"
+                      render={({ field }) => (
+                        <FormItem className="flex items-center gap-1.5 mt-0">
+                          <div className="flex items-center gap-1.5">
+                            <Lock size={15} className="text-primary" />
+                            <FormLabel className="text-sm cursor-not-allowed text-muted-foreground m-0">
+                              Password
+                            </FormLabel>
+                          </div>
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              disabled={true}
+                              className="h-4 w-4 ml-0.5 text-primary"
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  </div>
                 </div>
 
                 <Button
                   type="submit"
-                  className="gap-1.5"
+                  className="gap-1.5 bg-primary hover:bg-primary/90 text-sm h-9"
                   size="sm"
                   disabled={isGeneratingLink || !code.trim()}
                 >
-                  <LinkIcon size={14} />
+                  <LinkIcon size={15} />
                   {isGeneratingLink ? "Generating..." : "Generate link"}
                 </Button>
               </form>
@@ -699,32 +700,32 @@ const PasteCodeEditor: React.FC = () => {
 
           <div className="bg-card rounded-lg border shadow-sm p-3">
             <h3 className="text-sm font-medium mb-2 pb-2 border-b">Stats</h3>
-            <div className="grid grid-cols-2 gap-x-8 gap-y-2">
+            <div className="grid grid-cols-2 gap-x-8 gap-y-3">
               <div className="flex justify-between">
-                <span className="text-xs text-muted-foreground flex items-center">
-                  <Eye size={13} className="mr-1.5" /> Views
+                <span className="text-sm text-muted-foreground flex items-center">
+                  <Eye size={15} className="mr-1.5" /> Views
                 </span>
-                <span className="text-sm">{pasteStats.views}</span>
+                <span className="text-sm font-medium">{pasteStats.views}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-xs text-muted-foreground flex items-center">
-                  <FileText size={13} className="mr-1.5" /> Language
+                <span className="text-sm text-muted-foreground flex items-center">
+                  <FileText size={15} className="mr-1.5" /> Language
                 </span>
-                <span className="text-sm">
+                <span className="text-sm font-medium">
                   {languageOptions.find((l) => l.value === language)?.label}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-xs text-muted-foreground flex items-center">
-                  <Clock size={13} className="mr-1.5" /> Created
+                <span className="text-sm text-muted-foreground flex items-center">
+                  <Clock size={15} className="mr-1.5" /> Created
                 </span>
-                <span className="text-sm">Just now</span>
+                <span className="text-sm font-medium">Just now</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-xs text-muted-foreground flex items-center">
-                  <Share2 size={13} className="mr-1.5" /> Total Shares
+                <span className="text-sm text-muted-foreground flex items-center">
+                  <Share2 size={15} className="mr-1.5" /> Shares
                 </span>
-                <span className="text-sm">4.7M+</span>
+                <span className="text-sm font-medium">4.7M+</span>
               </div>
             </div>
           </div>
