@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import CodeEditor from "@uiw/react-textarea-code-editor";
 import { Button } from "@/components/ui/button";
 import {
@@ -350,9 +350,17 @@ const PasteCodeEditor: React.FC = () => {
     },
   });
 
-  // Set sample code when language changes
+  // Track if user has edited the code
+  const userHasEditedCode = useRef(false);
+
+  // Set sample code when language changes, but not when user intentionally clears the editor
   useEffect(() => {
-    if (code === "" || Object.values(languageSamples).includes(code)) {
+    // Only set sample code if the code is empty and it's the initial load
+    // or if the current code is from another language sample (from the samples dictionary)
+    const isCurrentCodeASample = Object.values(languageSamples).includes(code);
+    const isEmptyEditor = code === "";
+
+    if ((isEmptyEditor && !userHasEditedCode.current) || isCurrentCodeASample) {
       const sample =
         languageSamples[language as keyof typeof languageSamples] || "";
       setCode(sample);
@@ -361,6 +369,11 @@ const PasteCodeEditor: React.FC = () => {
 
   const handleLanguageChange = (value: string) => {
     setLanguage(value);
+  };
+
+  const handleCodeChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    userHasEditedCode.current = true;
+    setCode(e.target.value);
   };
 
   const handleGenerateLink = (values: FormValues) => {
@@ -553,7 +566,7 @@ const PasteCodeEditor: React.FC = () => {
                   value={code}
                   language={language}
                   placeholder="Paste your code or start typing..."
-                  onChange={(e) => setCode(e.target.value)}
+                  onChange={handleCodeChange}
                   padding={15}
                   style={{
                     fontSize: "1rem",
