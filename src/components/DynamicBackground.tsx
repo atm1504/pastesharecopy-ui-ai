@@ -88,8 +88,8 @@ const DynamicBackground: React.FC = () => {
     if (!canvas) return;
 
     // Calculate appropriate particle count based on screen size and device
-    const baseCount = isMobileRef.current ? 6000 : 9000; // Even more visible particles
-    const maxCount = isMobileRef.current ? 100 : 180; // Even more particles
+    const baseCount = isMobileRef.current ? 6000 : 9000; // More visible particles
+    const maxCount = isMobileRef.current ? 100 : 180; // More particles
 
     const particleCount = Math.min(
       Math.floor((canvas.width * canvas.height) / baseCount),
@@ -101,20 +101,47 @@ const DynamicBackground: React.FC = () => {
     );
 
     const particles: Particle[] = [];
-    // More vibrant colors
-    const baseColor = isDarkMode ? "149, 128, 255" : "94, 84, 204"; // Primary color in RGB
-    const altColor = isDarkMode ? "129, 140, 248" : "67, 56, 202"; // Secondary/indigo color in RGB
+
+    // Define colors for both themes
+    // Dark mode - keep the existing purple/blue scheme that looks good
+    const darkPrimary = "149, 128, 255"; // Purple
+    const darkSecondary = "129, 140, 248"; // Indigo
+    const darkTertiary = "168, 85, 247"; // Alternative purple for variety
+
+    // Light mode - new elegant, softer colors that complement light backgrounds
+    const lightPrimary = "126, 166, 224"; // Soft blue
+    const lightSecondary = "190, 227, 248"; // Light sky blue
+    const lightTertiary = "147, 197, 253"; // Another soft blue variant
+
+    // Background fills for clearing the canvas
+    const darkBgFill = "rgba(9, 6, 24, 0.15)";
+    const lightBgFill = "rgba(245, 250, 255, 0.2)";
 
     for (let i = 0; i < particleCount; i++) {
-      const colorChoice = Math.random() > 0.5 ? baseColor : altColor;
+      // Randomize colors with more variety (3 options instead of 2)
+      const random = Math.random();
+      let colorChoice;
+
+      if (isDarkMode) {
+        if (random < 0.4) colorChoice = darkPrimary;
+        else if (random < 0.8) colorChoice = darkSecondary;
+        else colorChoice = darkTertiary;
+      } else {
+        if (random < 0.4) colorChoice = lightPrimary;
+        else if (random < 0.8) colorChoice = lightSecondary;
+        else colorChoice = lightTertiary;
+      }
+
       particles.push({
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,
-        size: Math.random() * 5 + 2, // Even bigger particles
-        speedX: (Math.random() - 0.5) * 0.5, // Faster
-        speedY: (Math.random() - 0.5) * 0.5, // Faster
+        size: Math.random() * 5 + 2, // Big particles
+        speedX: (Math.random() - 0.5) * 0.5, // Normal speed
+        speedY: (Math.random() - 0.5) * 0.5, // Normal speed
         color: colorChoice,
-        opacity: Math.random() * 0.8 + 0.3, // Even more visible opacity
+        opacity: isDarkMode
+          ? Math.random() * 0.8 + 0.3 // Higher opacity for dark mode
+          : Math.random() * 0.6 + 0.2, // Slightly lower opacity for light mode
       });
     }
     particlesRef.current = particles;
@@ -127,8 +154,8 @@ const DynamicBackground: React.FC = () => {
 
     // Clear canvas with slight transparency to create trails
     ctx.fillStyle = isDarkMode
-      ? "rgba(9, 6, 24, 0.15)" // More visible in dark mode
-      : "rgba(245, 245, 255, 0.25)"; // More visible in light mode
+      ? "rgba(9, 6, 24, 0.15)" // Dark mode background
+      : "rgba(245, 250, 255, 0.2)"; // Light mode background - slightly blue tinted
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // Update and draw particles
@@ -211,13 +238,14 @@ const DynamicBackground: React.FC = () => {
 
       // Connect close particles with lines
       if (distance < connectionDistance) {
-        // Line opacity based on distance
+        // Line opacity based on distance - more subtle in light mode
+        const baseOpacity = isDarkMode ? 0.5 : 0.35;
         const opacity =
-          ((connectionDistance - distance) / connectionDistance) * 0.5; // Even more visible lines
+          ((connectionDistance - distance) / connectionDistance) * baseOpacity;
 
         ctx.beginPath();
         ctx.strokeStyle = `rgba(${particle.color}, ${opacity})`;
-        ctx.lineWidth = 1.0; // Thicker lines
+        ctx.lineWidth = isDarkMode ? 1.0 : 0.8; // Slightly thinner lines in light mode
         ctx.moveTo(particle.x, particle.y);
         ctx.lineTo(nextParticle.x, nextParticle.y);
         ctx.stroke();

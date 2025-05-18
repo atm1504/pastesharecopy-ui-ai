@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { ThemeProvider } from "@/hooks/useTheme";
+import { ThemeProvider, useTheme } from "@/hooks/useTheme";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -14,9 +14,12 @@ import Login from "./pages/Login";
 const queryClient = new QueryClient();
 
 const App = () => {
+  const { resolvedTheme } = useTheme();
+  const isDarkMode = resolvedTheme === "dark";
+
   useEffect(() => {
-    console.log("App: Rendering with DynamicBackground");
-  }, []);
+    console.log("App: Rendering with DynamicBackground, theme:", resolvedTheme);
+  }, [resolvedTheme]);
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -29,7 +32,11 @@ const App = () => {
           <Sonner />
 
           <BrowserRouter>
-            <div className="min-h-screen bg-background/80 font-sans antialiased relative">
+            <div
+              className={`min-h-screen font-sans antialiased relative ${
+                isDarkMode ? "bg-background/70" : "bg-background/60"
+              }`}
+            >
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/pricing" element={<Pricing />} />
