@@ -1,0 +1,113 @@
+{
+  "general": {
+    "appName": "PasteShareCopy",
+    "tagline": "Comparte Fragmentos de Código con Facilidad",
+    "404": "404",
+    "pageNotFound": "¡Ups! Página no encontrada",
+    "returnHome": "Volver al Inicio",
+    "github": "GitHub",
+    "language": "Idioma",
+    "toggleTheme": "Cambiar tema",
+    "close": "Cerrar"
+  },
+  "hero": {
+    "title": "Comparte Fragmentos de Código con Facilidad",
+    "description": "Crea, comparte y almacena tus fragmentos de código en segundos. Resaltado de sintaxis perfecto, con potentes funciones para compartir tu código sin esfuerzo."
+  },
+  "navigation": {
+    "home": "Inicio",
+    "features": "Características",
+    "pricing": "Precios",
+    "docs": "Documentación",
+    "login": "Iniciar Sesión",
+    "signup": "Registrarse",
+    "dashboard": "Panel",
+    "settings": "Configuración",
+    "products": "Producto",
+    "resources": "Recursos",
+    "company": "Empresa",
+    "about": "Acerca de",
+    "blog": "Blog",
+    "careers": "Carreras",
+    "contact": "Contacto",
+    "guides": "Guías",
+    "support": "Soporte",
+    "status": "Estado",
+    "integrations": "Integraciones",
+    "terms": "Términos",
+    "privacy": "Privacidad",
+    "cookies": "Cookies",
+    "copyright": "Todos los derechos reservados.",
+    "yourSharedLinks": "Tus Enlaces Compartidos",
+    "openLink": "Abrir enlace"
+  },
+  "actions": {
+    "startPasting": "Empezar a Pegar",
+    "viewPlans": "Ver Planes",
+    "tryNow": "Probar Ahora",
+    "learnMore": "Saber Más",
+    "share": "Compartir",
+    "copy": "Copiar",
+    "download": "Descargar",
+    "save": "Guardar",
+    "edit": "Editar"
+  },
+  "editor": {
+    "language": "Lenguaje",
+    "languages": "Lenguajes",
+    "theme": "Tema",
+    "fontSize": "Tamaño de Fuente",
+    "lineNumbers": "Números de Línea",
+    "indentation": "Indentación",
+    "tabSize": "Tamaño de Tabulación",
+    "wrapLines": "Ajustar Líneas",
+    "placeholder": "Pega tu código aquí...",
+    "preview": "Vista previa",
+    "htmlPreview": "Vista previa HTML (sanitizada)",
+    "shareOptions": "Opciones de Compartir",
+    "stats": "Estadísticas",
+    "justNow": "Ahora mismo",
+    "views": "4.7M+",
+    "errorRenderingMarkdown": "Error al renderizar Markdown:",
+    "errorRenderingCSS": "Error al renderizar CSS:",
+    "errorFormattingJSON": "Error al formatear JSON:",
+    "expiration": {
+      "1d": "1 día",
+      "2d": "2 días",
+      "3d": "3 días",
+      "7d": "7 días"
+    }
+  },
+  "features": {
+    "title": "Funciones Potentes",
+    "syntaxHighlighting": "Resaltado de Sintaxis",
+    "linkSharing": "Compartir Enlaces",
+    "privateSnippets": "Fragmentos Privados",
+    "teamCollaboration": "Colaboración en Equipo",
+    "versionControl": "Control de Versiones",
+    "embedding": "Incrustación"
+  },
+  "pricing": {
+    "title": "Precios Simples y Transparentes"
+  },
+  "samples": {
+    "welcome": "Bienvenido a nuestra aplicación.",
+    "myWebsite": {
+      "title": "Mi Sitio Web",
+      "heading": "Bienvenido a Mi Sitio Web",
+      "nav": {
+        "home": "Inicio",
+        "about": "Acerca de",
+        "contact": "Contacto"
+      },
+      "content": "Esta es una página HTML de muestra."
+    },
+    "css": {
+      "boxElement": "Elemento Caja",
+      "textElement": "Elemento Texto",
+      "buttonElement": "Elemento Botón",
+      "cardHeader": "Encabezado de Tarjeta",
+      "cardContent": "El contenido de la tarjeta va aquí"
+    }
+  }
+}

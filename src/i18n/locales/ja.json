@@ -1,0 +1,113 @@
+{
+  "general": {
+    "appName": "PasteShareCopy",
+    "tagline": "コードスニペットを簡単に共有",
+    "404": "404",
+    "pageNotFound": "おっと！ページが見つかりません",
+    "returnHome": "ホームに戻る",
+    "github": "GitHub",
+    "language": "言語",
+    "toggleTheme": "テーマ切替",
+    "close": "閉じる"
+  },
+  "hero": {
+    "title": "コードスニペットを簡単に共有",
+    "description": "数秒でコードスニペットを作成、共有、保存できます。完璧なシンタックスハイライトと、コードを簡単に共有するための強力な機能があります。"
+  },
+  "navigation": {
+    "home": "ホーム",
+    "features": "機能",
+    "pricing": "料金",
+    "docs": "ドキュメント",
+    "login": "ログイン",
+    "signup": "登録",
+    "dashboard": "ダッシュボード",
+    "settings": "設定",
+    "products": "製品",
+    "resources": "リソース",
+    "company": "会社",
+    "about": "会社概要",
+    "blog": "ブログ",
+    "careers": "採用情報",
+    "contact": "お問い合わせ",
+    "guides": "ガイド",
+    "support": "サポート",
+    "status": "ステータス",
+    "integrations": "連携機能",
+    "terms": "利用規約",
+    "privacy": "プライバシーポリシー",
+    "cookies": "クッキーポリシー",
+    "copyright": "全著作権所有。",
+    "yourSharedLinks": "共有リンク",
+    "openLink": "リンクを開く"
+  },
+  "actions": {
+    "startPasting": "貼り付け開始",
+    "viewPlans": "プランを見る",
+    "tryNow": "今すぐ試す",
+    "learnMore": "詳細を見る",
+    "share": "共有",
+    "copy": "コピー",
+    "download": "ダウンロード",
+    "save": "保存",
+    "edit": "編集"
+  },
+  "editor": {
+    "language": "言語",
+    "languages": "言語一覧",
+    "theme": "テーマ",
+    "fontSize": "フォントサイズ",
+    "lineNumbers": "行番号",
+    "indentation": "インデント",
+    "tabSize": "タブサイズ",
+    "wrapLines": "折り返し",
+    "placeholder": "ここにコードを貼り付けてください...",
+    "preview": "プレビュー",
+    "htmlPreview": "HTMLプレビュー（サニタイズ済み）",
+    "shareOptions": "共有オプション",
+    "stats": "統計",
+    "justNow": "たった今",
+    "views": "4.7M+",
+    "errorRenderingMarkdown": "Markdownのレンダリングエラー：",
+    "errorRenderingCSS": "CSSのレンダリングエラー：",
+    "errorFormattingJSON": "JSONのフォーマットエラー：",
+    "expiration": {
+      "1d": "1日",
+      "2d": "2日",
+      "3d": "3日",
+      "7d": "7日"
+    }
+  },
+  "features": {
+    "title": "強力な機能",
+    "syntaxHighlighting": "シンタックスハイライト",
+    "linkSharing": "リンク共有",
+    "privateSnippets": "プライベートスニペット",
+    "teamCollaboration": "チームコラボレーション",
+    "versionControl": "バージョン管理",
+    "embedding": "埋め込み"
+  },
+  "pricing": {
+    "title": "シンプルで透明な料金体系"
+  },
+  "samples": {
+    "welcome": "アプリケーションへようこそ。",
+    "myWebsite": {
+      "title": "マイウェブサイト",
+      "heading": "マイウェブサイトへようこそ",
+      "nav": {
+        "home": "ホーム",
+        "about": "概要",
+        "contact": "お問い合わせ"
+      },
+      "content": "これはHTMLのサンプルページです。"
+    },
+    "css": {
+      "boxElement": "ボックス要素",
+      "textElement": "テキスト要素",
+      "buttonElement": "ボタン要素",
+      "cardHeader": "カードヘッダー",
+      "cardContent": "カードコンテンツはここに表示"
+    }
+  }
+}

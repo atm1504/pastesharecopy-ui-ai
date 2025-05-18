@@ -1,0 +1,113 @@
+{
+  "general": {
+    "appName": "PasteShareCopy",
+    "tagline": "Share Code Snippets with Ease",
+    "404": "404",
+    "pageNotFound": "Oops! Page not found",
+    "returnHome": "Return to Home",
+    "github": "GitHub",
+    "language": "Language",
+    "toggleTheme": "Toggle theme",
+    "close": "Close"
+  },
+  "hero": {
+    "title": "Share Code Snippets with Ease",
+    "description": "Create, share, and store your code snippets in seconds. Perfect syntax highlighting, with powerful features to make sharing your code effortless."
+  },
+  "navigation": {
+    "home": "Home",
+    "features": "Features",
+    "pricing": "Pricing",
+    "docs": "Documentation",
+    "login": "Log In",
+    "signup": "Sign Up",
+    "dashboard": "Dashboard",
+    "settings": "Settings",
+    "products": "Product",
+    "resources": "Resources",
+    "company": "Company",
+    "about": "About",
+    "blog": "Blog",
+    "careers": "Careers",
+    "contact": "Contact",
+    "guides": "Guides",
+    "support": "Support",
+    "status": "Status",
+    "integrations": "Integrations",
+    "terms": "Terms",
+    "privacy": "Privacy",
+    "cookies": "Cookies",
+    "copyright": "All rights reserved.",
+    "yourSharedLinks": "Your Shared Links",
+    "openLink": "Open link"
+  },
+  "actions": {
+    "startPasting": "Start Pasting",
+    "viewPlans": "View Plans",
+    "tryNow": "Try Now",
+    "learnMore": "Learn More",
+    "share": "Share",
+    "copy": "Copy",
+    "download": "Download",
+    "save": "Save",
+    "edit": "Edit"
+  },
+  "editor": {
+    "language": "Language",
+    "languages": "Languages",
+    "theme": "Theme",
+    "fontSize": "Font Size",
+    "lineNumbers": "Line Numbers",
+    "indentation": "Indentation",
+    "tabSize": "Tab Size",
+    "wrapLines": "Wrap Lines",
+    "placeholder": "Paste your code here...",
+    "preview": "Preview",
+    "htmlPreview": "HTML Preview (sanitized)",
+    "shareOptions": "Share Options",
+    "stats": "Stats",
+    "justNow": "Just now",
+    "views": "4.7M+",
+    "errorRenderingMarkdown": "Error rendering Markdown:",
+    "errorRenderingCSS": "Error rendering CSS:",
+    "errorFormattingJSON": "Error formatting JSON:",
+    "expiration": {
+      "1d": "1 day",
+      "2d": "2 days",
+      "3d": "3 days",
+      "7d": "7 days"
+    }
+  },
+  "features": {
+    "title": "Powerful Features",
+    "syntaxHighlighting": "Syntax Highlighting",
+    "linkSharing": "Link Sharing",
+    "privateSnippets": "Private Snippets",
+    "teamCollaboration": "Team Collaboration",
+    "versionControl": "Version Control",
+    "embedding": "Embedding"
+  },
+  "pricing": {
+    "title": "Simple, Transparent Pricing"
+  },
+  "samples": {
+    "welcome": "Welcome to our application.",
+    "myWebsite": {
+      "title": "My Website",
+      "heading": "Welcome to My Website",
+      "nav": {
+        "home": "Home",
+        "about": "About",
+        "contact": "Contact"
+      },
+      "content": "This is a sample HTML page."
+    },
+    "css": {
+      "boxElement": "Box Element",
+      "textElement": "Text Element",
+      "buttonElement": "Button Element",
+      "cardHeader": "Card Header",
+      "cardContent": "Card content goes here"
+    }
+  }
+}

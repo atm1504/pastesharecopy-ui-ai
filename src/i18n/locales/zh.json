@@ -1,0 +1,113 @@
+{
+  "general": {
+    "appName": "PasteShareCopy",
+    "tagline": "轻松分享代码片段",
+    "404": "404",
+    "pageNotFound": "糟糕！页面未找到",
+    "returnHome": "返回首页",
+    "github": "GitHub",
+    "language": "语言",
+    "toggleTheme": "切换主题",
+    "close": "关闭"
+  },
+  "hero": {
+    "title": "轻松分享代码片段",
+    "description": "几秒钟内创建、分享和存储代码片段。完美的语法高亮，强大的功能使分享代码变得毫不费力。"
+  },
+  "navigation": {
+    "home": "首页",
+    "features": "功能",
+    "pricing": "价格",
+    "docs": "文档",
+    "login": "登录",
+    "signup": "注册",
+    "dashboard": "控制台",
+    "settings": "设置",
+    "products": "产品",
+    "resources": "资源",
+    "company": "公司",
+    "about": "关于我们",
+    "blog": "博客",
+    "careers": "招聘",
+    "contact": "联系我们",
+    "guides": "指南",
+    "support": "支持",
+    "status": "状态",
+    "integrations": "集成",
+    "terms": "条款",
+    "privacy": "隐私",
+    "cookies": "Cookie",
+    "copyright": "版权所有。",
+    "yourSharedLinks": "您的共享链接",
+    "openLink": "打开链接"
+  },
+  "actions": {
+    "startPasting": "开始粘贴",
+    "viewPlans": "查看方案",
+    "tryNow": "立即尝试",
+    "learnMore": "了解更多",
+    "share": "分享",
+    "copy": "复制",
+    "download": "下载",
+    "save": "保存",
+    "edit": "编辑"
+  },
+  "editor": {
+    "language": "语言",
+    "languages": "语言列表",
+    "theme": "主题",
+    "fontSize": "字体大小",
+    "lineNumbers": "行号",
+    "indentation": "缩进",
+    "tabSize": "制表符大小",
+    "wrapLines": "自动换行",
+    "placeholder": "在此粘贴您的代码...",
+    "preview": "预览",
+    "htmlPreview": "HTML预览（已净化）",
+    "shareOptions": "分享选项",
+    "stats": "统计",
+    "justNow": "刚刚",
+    "views": "4.7M+",
+    "errorRenderingMarkdown": "渲染Markdown时出错：",
+    "errorRenderingCSS": "渲染CSS时出错：",
+    "errorFormattingJSON": "格式化JSON时出错：",
+    "expiration": {
+      "1d": "1天",
+      "2d": "2天",
+      "3d": "3天",
+      "7d": "7天"
+    }
+  },
+  "features": {
+    "title": "强大功能",
+    "syntaxHighlighting": "语法高亮",
+    "linkSharing": "链接分享",
+    "privateSnippets": "私人片段",
+    "teamCollaboration": "团队协作",
+    "versionControl": "版本控制",
+    "embedding": "嵌入功能"
+  },
+  "pricing": {
+    "title": "简单透明的价格"
+  },
+  "samples": {
+    "welcome": "欢迎使用我们的应用程序。",
+    "myWebsite": {
+      "title": "我的网站",
+      "heading": "欢迎访问我的网站",
+      "nav": {
+        "home": "首页",
+        "about": "关于",
+        "contact": "联系"
+      },
+      "content": "这是一个HTML示例页面。"
+    },
+    "css": {
+      "boxElement": "盒子元素",
+      "textElement": "文本元素",
+      "buttonElement": "按钮元素",
+      "cardHeader": "卡片头部",
+      "cardContent": "卡片内容在这里"
+    }
+  }
+}

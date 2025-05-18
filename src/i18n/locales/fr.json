@@ -1,0 +1,113 @@
+{
+  "general": {
+    "appName": "PasteShareCopy",
+    "tagline": "Partagez des Extraits de Code Facilement",
+    "404": "404",
+    "pageNotFound": "Oups ! Page non trouvée",
+    "returnHome": "Retour à l'accueil",
+    "github": "GitHub",
+    "language": "Langue",
+    "toggleTheme": "Changer de thème",
+    "close": "Fermer"
+  },
+  "hero": {
+    "title": "Partagez des Extraits de Code Facilement",
+    "description": "Créez, partagez et stockez vos extraits de code en quelques secondes. Une coloration syntaxique parfaite, avec des fonctionnalités puissantes pour partager votre code sans effort."
+  },
+  "navigation": {
+    "home": "Accueil",
+    "features": "Fonctionnalités",
+    "pricing": "Tarifs",
+    "docs": "Documentation",
+    "login": "Connexion",
+    "signup": "S'inscrire",
+    "dashboard": "Tableau de Bord",
+    "settings": "Paramètres",
+    "products": "Produit",
+    "resources": "Ressources",
+    "company": "Entreprise",
+    "about": "À Propos",
+    "blog": "Blog",
+    "careers": "Carrières",
+    "contact": "Contact",
+    "guides": "Guides",
+    "support": "Support",
+    "status": "Statut",
+    "integrations": "Intégrations",
+    "terms": "Conditions",
+    "privacy": "Confidentialité",
+    "cookies": "Cookies",
+    "copyright": "Tous droits réservés.",
+    "yourSharedLinks": "Vos Liens Partagés",
+    "openLink": "Ouvrir le lien"
+  },
+  "actions": {
+    "startPasting": "Commencer à Coller",
+    "viewPlans": "Voir les Plans",
+    "tryNow": "Essayer Maintenant",
+    "learnMore": "En Savoir Plus",
+    "share": "Partager",
+    "copy": "Copier",
+    "download": "Télécharger",
+    "save": "Enregistrer",
+    "edit": "Modifier"
+  },
+  "editor": {
+    "language": "Langage",
+    "languages": "Langages",
+    "theme": "Thème",
+    "fontSize": "Taille de Police",
+    "lineNumbers": "Numéros de Ligne",
+    "indentation": "Indentation",
+    "tabSize": "Taille de Tabulation",
+    "wrapLines": "Retour à la Ligne",
+    "placeholder": "Collez votre code ici...",
+    "preview": "Aperçu",
+    "htmlPreview": "Aperçu HTML (assaini)",
+    "shareOptions": "Options de Partage",
+    "stats": "Statistiques",
+    "justNow": "À l'instant",
+    "views": "4.7M+",
+    "errorRenderingMarkdown": "Erreur lors du rendu Markdown :",
+    "errorRenderingCSS": "Erreur lors du rendu CSS :",
+    "errorFormattingJSON": "Erreur lors du formatage JSON :",
+    "expiration": {
+      "1d": "1 jour",
+      "2d": "2 jours",
+      "3d": "3 jours",
+      "7d": "7 jours"
+    }
+  },
+  "features": {
+    "title": "Fonctionnalités Puissantes",
+    "syntaxHighlighting": "Coloration Syntaxique",
+    "linkSharing": "Partage de Liens",
+    "privateSnippets": "Extraits Privés",
+    "teamCollaboration": "Collaboration d'Équipe",
+    "versionControl": "Contrôle de Version",
+    "embedding": "Intégration"
+  },
+  "pricing": {
+    "title": "Tarification Simple et Transparente"
+  },
+  "samples": {
+    "welcome": "Bienvenue dans notre application.",
+    "myWebsite": {
+      "title": "Mon Site Web",
+      "heading": "Bienvenue sur Mon Site Web",
+      "nav": {
+        "home": "Accueil",
+        "about": "À Propos",
+        "contact": "Contact"
+      },
+      "content": "Ceci est un exemple de page HTML."
+    },
+    "css": {
+      "boxElement": "Élément Boîte",
+      "textElement": "Élément Texte",
+      "buttonElement": "Élément Bouton",
+      "cardHeader": "En-tête de Carte",
+      "cardContent": "Le contenu de la carte va ici"
+    }
+  }
+}
