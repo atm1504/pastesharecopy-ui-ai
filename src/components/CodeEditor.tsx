@@ -506,7 +506,7 @@ const renderPreview = (
               </span>
             </div>
 
-            <div className="flex flex-col bg-white text-black p-6 rounded overflow-auto border shadow-sm min-h-[50vh]">
+            <div className="flex flex-col bg-white text-black p-6 rounded overflow-auto border shadow-sm min-h-[71vh]">
               <div className="text-xs text-gray-600 mb-4 border-b border-gray-200 pb-2">
                 <Eye size={12} className="mr-1.5 inline-block" /> Visual Preview
               </div>
@@ -543,7 +543,7 @@ const renderPreview = (
                 Validated
               </span>
             </div>
-            <pre className="text-white font-mono text-sm overflow-auto bg-[#181824] p-4 rounded min-h-[50vh]">
+            <pre className="text-white font-mono text-sm overflow-auto bg-[#181824] p-4 rounded min-h-[71vh]">
               <code
                 dangerouslySetInnerHTML={{
                   __html: highlightedJson,
@@ -583,7 +583,7 @@ const renderPreview = (
                 {validation.isValid ? "Valid Syntax" : "Syntax Error"}
               </span>
             </div>
-            <pre className="text-white font-mono text-sm overflow-auto bg-[#181824] p-4 rounded min-h-[50vh]">
+            <pre className="text-white font-mono text-sm overflow-auto bg-[#181824] p-4 rounded min-h-[71vh]">
               <code
                 dangerouslySetInnerHTML={{
                   __html: highlightedCode,
@@ -596,7 +596,7 @@ const renderPreview = (
       } catch (error) {
         // Fallback to regular code display
         return (
-          <pre className="text-white font-mono text-sm bg-[#181824] p-4 rounded overflow-auto min-h-[50vh]">
+          <pre className="text-white font-mono text-sm bg-[#181824] p-4 rounded overflow-auto min-h-[71vh]">
             <code>{code}</code>
           </pre>
         );
@@ -758,7 +758,7 @@ const PasteCodeEditor: React.FC = () => {
         value={activeTab}
         onValueChange={setActiveTab}
       >
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between mb-1">
           <TabsList className="h-10">
             <TabsTrigger value="editor" className="text-sm">
               Editor
@@ -789,7 +789,7 @@ const PasteCodeEditor: React.FC = () => {
           </Select>
         </div>
 
-        <div className="bg-card border rounded-lg shadow-sm overflow-hidden mb-3">
+        <div className="bg-card border rounded-lg shadow-sm overflow-hidden mb-2">
           <TabsContent value="editor" className="mt-0">
             <div className="code-header flex items-center justify-between p-2">
               <div className="flex items-center gap-2">
@@ -852,7 +852,7 @@ const PasteCodeEditor: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex min-h-[75vh] relative">
+            <div className="flex min-h-[71vh] relative">
               <div className="py-4 bg-[#181824] text-muted-foreground text-right select-none font-mono text-xs w-[3.5rem] overflow-y-hidden flex flex-col">
                 {code.split("\n").map((_, i) => (
                   <div
@@ -878,10 +878,10 @@ const PasteCodeEditor: React.FC = () => {
                     backgroundColor: "#151520",
                     height: "100%",
                     borderRadius: "0",
-                    minHeight: "75vh",
+                    minHeight: "71vh",
                     lineHeight: "1.5rem",
                   }}
-                  className="w-full outline-none resize-none min-h-[75vh]"
+                  className="w-full outline-none resize-none min-h-[71vh]"
                   data-color-mode="dark"
                 />
               </div>
@@ -913,7 +913,7 @@ const PasteCodeEditor: React.FC = () => {
                 <span className="text-xs">Edit</span>
               </Button>
             </div>
-            <div className="p-4 bg-[#151520] min-h-[75vh] overflow-auto">
+            <div className="p-4 bg-[#151520] min-h-[71vh] overflow-auto">
               {/* Language-specific preview */}
               {renderPreview(code, language, validation)}
             </div>
