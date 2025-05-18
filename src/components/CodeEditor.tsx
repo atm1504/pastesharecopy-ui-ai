@@ -46,7 +46,9 @@ import {
   CardHeader,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { marked } from "marked";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import rehypeHighlight from "rehype-highlight";
 import DOMPurify from "dompurify";
 import parse from "html-react-parser";
 import hljs from "highlight.js";
@@ -364,14 +366,27 @@ const validateCode = (
         }
         return { isValid: true };
 
-      case "css":
-        // Basic CSS validation (just checking for matching braces)
+      case "css": {
+        // Basic CSS validation (checking for matching braces and semicolons)
         if (
           (code.match(/{/g) || []).length !== (code.match(/}/g) || []).length
         ) {
           return { isValid: false, error: "Mismatched braces in CSS" };
         }
+
+        // Check for property declarations without semicolons (simplified)
+        const cssPropertyRegex = /([a-z-]+)\s*:\s*[^;{}]+(?=[}])/g;
+        const missingSemicolons = code.match(cssPropertyRegex);
+
+        if (missingSemicolons && missingSemicolons.length > 0) {
+          return {
+            isValid: false,
+            error: "Missing semicolons in some CSS properties",
+          };
+        }
+
         return { isValid: true };
+      }
 
       default:
         // For other languages, just return valid as we don't have simple validators
@@ -386,7 +401,11 @@ const validateCode = (
 };
 
 // Preview renderer based on language
-const renderPreview = (code: string, language: string) => {
+const renderPreview = (
+  code: string,
+  language: string,
+  validation: { isValid: boolean; error?: string }
+) => {
   if (!code) return null;
 
   let sanitizedHtml = "";
@@ -395,21 +414,36 @@ const renderPreview = (code: string, language: string) => {
 
   switch (language) {
     case "markdown":
-      // Render markdown to HTML
+      // Render markdown using react-markdown with plugins
       try {
-        // Use marked to convert markdown to HTML synchronously
-        marked.setOptions({ async: false });
-        sanitizedHtml = DOMPurify.sanitize(marked.parse(code));
-
         return (
-          <div className="markdown-preview prose prose-invert max-w-none">
-            <div dangerouslySetInnerHTML={{ __html: sanitizedHtml }} />
+          <div className="markdown-preview">
+            <div className="border-b border-border mb-4 pb-2 text-xs text-muted-foreground flex justify-between items-center">
+              <span className="flex items-center">
+                <FileText size={12} className="mr-1.5" /> Markdown Preview
+              </span>
+              <span className="bg-green-500/20 text-green-400 text-xs px-2 py-0.5 rounded">
+                Live Preview
+              </span>
+            </div>
+
+            <div className="bg-[#181824] p-4 rounded shadow-sm">
+              <div className="prose prose-invert prose-headings:mt-4 prose-headings:mb-3 prose-p:my-2 prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline prose-code:bg-black/30 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-pink-300 prose-pre:bg-[#0d0d17] prose-pre:p-4 prose-li:my-1 max-w-none">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  rehypePlugins={[rehypeHighlight]}
+                >
+                  {code}
+                </ReactMarkdown>
+              </div>
+            </div>
           </div>
         );
       } catch (error) {
         return (
-          <div className="text-red-500">
-            Error rendering Markdown: {String(error)}
+          <div className="text-red-500 p-4 bg-red-500/10 rounded border border-red-500/30">
+            <div className="font-semibold mb-1">Error rendering Markdown:</div>
+            <div className="text-sm font-mono">{String(error)}</div>
           </div>
         );
       }
@@ -420,23 +454,14 @@ const renderPreview = (code: string, language: string) => {
         sanitizedHtml = DOMPurify.sanitize(code);
         return (
           <div className="html-preview">
-            <div className="border-b border-border mb-4 pb-2 text-xs text-muted-foreground">
-              HTML Preview (sanitized)
+            <div className="border-b border-border mb-4 pb-2 text-xs text-muted-foreground flex justify-between items-center">
+              <span>HTML Preview (sanitized)</span>
+              <span className="bg-green-500/20 text-green-400 text-xs px-2 py-0.5 rounded">
+                Live Preview
+              </span>
             </div>
-            <div className="html-render border p-4 bg-white text-black rounded">
+            <div className="html-render border p-4 bg-white text-black rounded shadow-md">
               {parse(sanitizedHtml)}
-            </div>
-            <div className="mt-4 border-t border-border pt-4">
-              <div className="text-xs text-muted-foreground mb-2">
-                HTML Source:
-              </div>
-              <pre className="text-white font-mono text-sm overflow-auto">
-                {code.split("\n").map((line, i) => (
-                  <div key={i} className="h-[1.5rem] flex items-center">
-                    {line}
-                  </div>
-                ))}
-              </pre>
             </div>
           </div>
         );
@@ -448,28 +473,91 @@ const renderPreview = (code: string, language: string) => {
         );
       }
 
+    case "css":
+      // CSS preview with live styling
+      try {
+        // Generate a few sample elements to demonstrate the CSS
+        const sampleHtml = `
+          <div class="css-preview-container">
+            <div class="sample-element sample-box">Box Element</div>
+            <div class="sample-element sample-text">Text Element</div>
+            <div class="sample-element sample-btn">Button Element</div>
+            <div class="sample-element sample-card">
+              <div class="card-header">Card Header</div>
+              <div class="card-body">Card content goes here</div>
+            </div>
+          </div>
+        `;
+
+        return (
+          <div className="css-preview">
+            <div className="border-b border-border mb-4 pb-2 text-xs text-muted-foreground flex justify-between items-center">
+              <span className="flex items-center">
+                <FileText size={12} className="mr-1.5" /> CSS Preview
+              </span>
+              <span
+                className={`text-xs px-2 py-0.5 rounded ${
+                  validation.isValid
+                    ? "bg-green-500/20 text-green-400"
+                    : "bg-red-500/20 text-red-400"
+                }`}
+              >
+                {validation.isValid ? "Valid CSS" : "CSS Errors"}
+              </span>
+            </div>
+
+            <div className="flex flex-col bg-white text-black p-6 rounded overflow-auto border shadow-sm min-h-[50vh]">
+              <div className="text-xs text-gray-600 mb-4 border-b border-gray-200 pb-2">
+                <Eye size={12} className="mr-1.5 inline-block" /> Visual Preview
+              </div>
+              <style dangerouslySetInnerHTML={{ __html: code }} />
+              <div dangerouslySetInnerHTML={{ __html: sampleHtml }} />
+            </div>
+          </div>
+        );
+      } catch (error) {
+        return (
+          <div className="text-red-500 p-4 bg-red-500/10 rounded border border-red-500/30">
+            <div className="font-semibold mb-1">Error rendering CSS:</div>
+            <div className="text-sm font-mono">{String(error)}</div>
+          </div>
+        );
+      }
+
     case "json":
       // Pretty-print JSON
       try {
         formattedJson = JSON.stringify(JSON.parse(code), null, 2);
+        // Use highlight.js for JSON syntax highlighting
+        const highlightedJson = hljs.highlight(formattedJson, {
+          language: "json",
+        }).value;
+
         return (
           <div className="json-preview">
-            <div className="border-b border-border mb-4 pb-2 text-xs text-muted-foreground">
-              Formatted JSON
+            <div className="border-b border-border mb-4 pb-2 text-xs text-muted-foreground flex justify-between items-center">
+              <span className="flex items-center">
+                <FileText size={12} className="mr-1.5" /> Formatted JSON
+              </span>
+              <span className="bg-blue-500/20 text-blue-400 text-xs px-2 py-0.5 rounded">
+                Validated
+              </span>
             </div>
-            <pre className="text-white font-mono text-sm overflow-auto">
-              {formattedJson.split("\n").map((line, i) => (
-                <div key={i} className="h-[1.5rem] flex items-center">
-                  {line}
-                </div>
-              ))}
+            <pre className="text-white font-mono text-sm overflow-auto bg-[#181824] p-4 rounded min-h-[50vh]">
+              <code
+                dangerouslySetInnerHTML={{
+                  __html: highlightedJson,
+                }}
+                className="language-json hljs"
+              />
             </pre>
           </div>
         );
       } catch (error) {
         return (
-          <div className="text-red-500">
-            Error formatting JSON: {String(error)}
+          <div className="text-red-500 p-4 bg-red-500/10 rounded border border-red-500/30">
+            <div className="font-semibold mb-1">Error formatting JSON:</div>
+            <div className="text-sm font-mono">{String(error)}</div>
           </div>
         );
       }
@@ -481,56 +569,35 @@ const renderPreview = (code: string, language: string) => {
           ? hljs.highlight(code, { language: language }).value
           : hljs.highlightAuto(code).value;
 
+        const languageLabel =
+          languageOptions.find((l) => l.value === language)?.label || language;
+
         return (
           <div className="code-preview">
-            <div className="border-b border-border mb-4 pb-2 text-xs text-muted-foreground">
-              Syntax Highlighted Code
+            <div className="border-b border-border mb-4 pb-2 text-xs text-muted-foreground flex justify-between items-center">
+              <span className="flex items-center">
+                <FileText size={12} className="mr-1.5" /> {languageLabel} Syntax
+                Highlighting
+              </span>
+              <span className="bg-purple-500/20 text-purple-400 text-xs px-2 py-0.5 rounded">
+                {validation.isValid ? "Valid Syntax" : "Syntax Error"}
+              </span>
             </div>
-            <pre className="text-white font-mono text-sm overflow-auto">
-              <div className="flex">
-                <div className="pr-4 text-right select-none text-muted-foreground w-10 flex flex-col">
-                  {code.split("\n").map((_, i) => (
-                    <div
-                      key={i}
-                      className="h-[1.5rem] flex items-center justify-end"
-                    >
-                      {i + 1}
-                    </div>
-                  ))}
-                </div>
-                <div className="pl-4 border-l border-muted-foreground/20 flex flex-col">
-                  <code
-                    dangerouslySetInnerHTML={{
-                      __html: highlightedCode,
-                    }}
-                    className={`language-${language} hljs`}
-                  />
-                </div>
-              </div>
+            <pre className="text-white font-mono text-sm overflow-auto bg-[#181824] p-4 rounded min-h-[50vh]">
+              <code
+                dangerouslySetInnerHTML={{
+                  __html: highlightedCode,
+                }}
+                className={`language-${language} hljs`}
+              />
             </pre>
           </div>
         );
       } catch (error) {
         // Fallback to regular code display
         return (
-          <pre className="text-white font-mono text-sm flex">
-            <div className="pr-4 text-right select-none text-muted-foreground w-10 flex flex-col">
-              {code.split("\n").map((_, i) => (
-                <div
-                  key={i}
-                  className="h-[1.5rem] flex items-center justify-end"
-                >
-                  {i + 1}
-                </div>
-              ))}
-            </div>
-            <div className="pl-4 border-l border-muted-foreground/20 flex flex-col">
-              {code.split("\n").map((line, i) => (
-                <div key={i} className="h-[1.5rem] flex items-center">
-                  {line}
-                </div>
-              ))}
-            </div>
+          <pre className="text-white font-mono text-sm bg-[#181824] p-4 rounded overflow-auto min-h-[50vh]">
+            <code>{code}</code>
           </pre>
         );
       }
@@ -691,37 +758,35 @@ const PasteCodeEditor: React.FC = () => {
         value={activeTab}
         onValueChange={setActiveTab}
       >
-        <div className="grid grid-cols-3 items-center mb-3">
-          <div className="flex items-center">
-            <TabsList>
-              <TabsTrigger value="editor">Editor</TabsTrigger>
-              <TabsTrigger value="preview">Preview</TabsTrigger>
-            </TabsList>
-          </div>
+        <div className="flex items-center justify-between mb-3">
+          <TabsList className="h-10">
+            <TabsTrigger value="editor" className="text-sm">
+              Editor
+            </TabsTrigger>
+            <TabsTrigger value="preview" className="text-sm">
+              Preview
+            </TabsTrigger>
+          </TabsList>
 
-          <div className="flex justify-center">
-            <span className="text-lg font-bold bg-gradient-to-r from-primary via-indigo-400 to-purple-500 bg-clip-text text-transparent drop-shadow-sm">
-              Start Sharing Your Code
-            </span>
-          </div>
+          <h1 className="text-xl font-bold text-center bg-gradient-to-r from-primary via-indigo-400 to-purple-500 bg-clip-text text-transparent drop-shadow-md">
+            Start Sharing Your Code
+          </h1>
 
-          <div className="flex justify-end">
-            <Select value={language} onValueChange={handleLanguageChange}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Language" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectLabel>Languages</SelectLabel>
-                  {languageOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-          </div>
+          <Select value={language} onValueChange={handleLanguageChange}>
+            <SelectTrigger className="w-40 h-10">
+              <SelectValue placeholder="Language" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectLabel>Languages</SelectLabel>
+                {languageOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="bg-card border rounded-lg shadow-sm overflow-hidden mb-3">
@@ -787,12 +852,13 @@ const PasteCodeEditor: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex min-h-[65vh] relative">
-              <div className="py-4 bg-[#181824] text-muted-foreground text-right select-none font-mono text-xs w-[3rem] overflow-y-hidden flex flex-col">
+            <div className="flex min-h-[75vh] relative">
+              <div className="py-4 bg-[#181824] text-muted-foreground text-right select-none font-mono text-xs w-[3.5rem] overflow-y-hidden flex flex-col">
                 {code.split("\n").map((_, i) => (
                   <div
                     key={i}
                     className="px-2 h-[1.5rem] flex items-center justify-end"
+                    style={{ lineHeight: "1.5rem" }}
                   >
                     {i + 1}
                   </div>
@@ -812,10 +878,10 @@ const PasteCodeEditor: React.FC = () => {
                     backgroundColor: "#151520",
                     height: "100%",
                     borderRadius: "0",
-                    minHeight: "65vh",
+                    minHeight: "75vh",
                     lineHeight: "1.5rem",
                   }}
-                  className="w-full outline-none resize-none min-h-[65vh]"
+                  className="w-full outline-none resize-none min-h-[75vh]"
                   data-color-mode="dark"
                 />
               </div>
@@ -847,17 +913,17 @@ const PasteCodeEditor: React.FC = () => {
                 <span className="text-xs">Edit</span>
               </Button>
             </div>
-            <div className="p-4 bg-[#151520] min-h-[65vh] overflow-auto">
+            <div className="p-4 bg-[#151520] min-h-[75vh] overflow-auto">
               {/* Language-specific preview */}
-              {renderPreview(code, language)}
+              {renderPreview(code, language, validation)}
             </div>
           </TabsContent>
         </div>
 
         <div className="grid md:grid-cols-2 gap-3">
-          <div className="bg-card rounded-lg border shadow-sm p-3">
+          <div className="bg-card rounded-lg border shadow-sm p-4">
             <div className="mb-2 pb-2 border-b flex justify-between items-center">
-              <h3 className="text-sm font-medium">Share Options</h3>
+              <h3 className="text-sm font-semibold">Share Options</h3>
               {generatedLink && (
                 <div className="flex items-center ml-2">
                   <div className="text-xs font-mono bg-secondary/50 px-2 py-1 rounded max-w-[280px] overflow-x-auto whitespace-nowrap mr-2">
@@ -956,8 +1022,8 @@ const PasteCodeEditor: React.FC = () => {
             </Form>
           </div>
 
-          <div className="bg-card rounded-lg border shadow-sm p-3">
-            <h3 className="text-sm font-medium mb-2 pb-2 border-b">Stats</h3>
+          <div className="bg-card rounded-lg border shadow-sm p-4">
+            <h3 className="text-sm font-semibold mb-2 pb-2 border-b">Stats</h3>
             <div className="grid grid-cols-2 gap-x-8 gap-y-3">
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground flex items-center">
