@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import CodeEditor from "@uiw/react-textarea-code-editor";
 import { Button } from "@/components/ui/button";
 import {
@@ -46,6 +46,17 @@ import {
   CardHeader,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import rehypeHighlight from "rehype-highlight";
+import DOMPurify from "dompurify";
+import parse from "html-react-parser";
+import hljs from "highlight.js";
+import "highlight.js/styles/atom-one-dark.css";
+import { useTheme } from "@/hooks/useTheme";
+
+// Import light theme for hljs
+import "highlight.js/styles/github.css";
 
 const formSchema = z.object({
   expiration: z.string().min(1),
@@ -86,6 +97,25 @@ greet("World")`,
   jsx: `import React from 'react';
 
 const Greeting = ({ name }) => {
+  const message = \`Hello, \${name}!\`;
+  
+  return (
+    <div className="greeting">
+      <h1>{message}</h1>
+      <p>Welcome to our application.</p>
+    </div>
+  );
+};
+
+export default Greeting;`,
+
+  tsx: `import React from 'react';
+
+interface GreetingProps {
+  name: string;
+}
+
+const Greeting: React.FC<GreetingProps> = ({ name }) => {
   const message = \`Hello, \${name}!\`;
   
   return (
@@ -291,6 +321,7 @@ const languageOptions = [
   { value: "typescript", label: "TypeScript" },
   { value: "python", label: "Python" },
   { value: "jsx", label: "React JSX" },
+  { value: "tsx", label: "React TSX" },
   { value: "css", label: "CSS" },
   { value: "html", label: "HTML" },
   { value: "json", label: "JSON" },
@@ -332,13 +363,424 @@ const pasteStats = {
   expiresAt: null,
 };
 
+// Code validation helper functions
+const validateCode = (
+  code: string,
+  language: string
+): { isValid: boolean; error?: string } => {
+  // Simple validation for various languages
+  try {
+    switch (language) {
+      case "javascript":
+        // Basic JS validation by attempting to parse
+        new Function(code);
+        return { isValid: true };
+
+      case "typescript":
+        // For TypeScript, we can do a basic syntax check
+        // But we'll skip type-checking as it would require a full TS compiler
+        try {
+          new Function(code.replace(/:\s*\w+/g, "")); // Remove type annotations
+          return { isValid: true };
+        } catch (e) {
+          return {
+            isValid: false,
+            error: e instanceof Error ? e.message : "Invalid TypeScript syntax",
+          };
+        }
+
+      case "jsx":
+      case "tsx":
+        // For JSX/TSX, we need to handle the special syntax
+        // We'll do a basic check for balanced tags and other common issues
+        try {
+          // Check for balanced JSX tags (basic check)
+          const jsxTagsOpen = (code.match(/<[a-zA-Z][^<>]*>/g) || []).length;
+          const jsxTagsClose = (code.match(/<\/[a-zA-Z][^<>]*>/g) || []).length;
+
+          if (jsxTagsOpen !== jsxTagsClose) {
+            return { isValid: false, error: "Unbalanced JSX tags" };
+          }
+
+          // Remove JSX syntax and try to evaluate as regular JS
+          const jsxRemoved = code
+            .replace(/<[^>]*>/g, '"JSX_ELEMENT"') // Replace JSX tags with strings
+            .replace(/import\s+.*?from\s+['"].*?['"]/g, "") // Remove import statements
+            .replace(/export\s+default\s+/g, "") // Remove export default
+            .replace(/\/\/.*$/gm, "") // Remove single-line comments
+            .replace(/\/\*[\s\S]*?\*\//g, ""); // Remove multi-line comments
+
+          // Only try to parse if there's actual code left after removing JSX
+          if (jsxRemoved.trim().length > 0) {
+            try {
+              new Function(jsxRemoved);
+            } catch (error) {
+              // Even if this fails, JSX could still be valid, so we'll just warn
+              return {
+                isValid: true,
+                error:
+                  "JSX syntax looks valid, but there might be other issues",
+              };
+            }
+          }
+
+          return { isValid: true };
+        } catch (error) {
+          return {
+            isValid: false,
+            error:
+              error instanceof Error ? error.message : "Invalid JSX syntax",
+          };
+        }
+
+      case "json":
+        // JSON validation
+        JSON.parse(code);
+        return { isValid: true };
+
+      case "html":
+        // Basic HTML validation (very simple check)
+        if (code.includes("<html") && !code.includes("</html>")) {
+          return { isValid: false, error: "Missing closing HTML tag" };
+        }
+        return { isValid: true };
+
+      case "css": {
+        // Basic CSS validation (checking for matching braces and semicolons)
+        if (
+          (code.match(/{/g) || []).length !== (code.match(/}/g) || []).length
+        ) {
+          return { isValid: false, error: "Mismatched braces in CSS" };
+        }
+
+        // Check for property declarations without semicolons (simplified)
+        const cssPropertyRegex = /([a-z-]+)\s*:\s*[^;{}]+(?=[}])/g;
+        const missingSemicolons = code.match(cssPropertyRegex);
+
+        if (missingSemicolons && missingSemicolons.length > 0) {
+          return {
+            isValid: false,
+            error: "Missing semicolons in some CSS properties",
+          };
+        }
+
+        return { isValid: true };
+      }
+
+      default:
+        // For other languages, just return valid as we don't have simple validators
+        return { isValid: true };
+    }
+  } catch (error) {
+    return {
+      isValid: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+};
+
+// Custom hook for dark mode detection
+const useIsDarkMode = () => {
+  const { theme } = useTheme();
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  useEffect(() => {
+    // Check if it's dark mode based on theme setting
+    const dark =
+      theme === "dark" ||
+      (theme === "system" &&
+        window.matchMedia &&
+        window.matchMedia("(prefers-color-scheme: dark)").matches);
+
+    setIsDarkMode(dark);
+
+    // Add listener for system theme changes if using system setting
+    if (theme === "system") {
+      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+      const handleChange = (e: MediaQueryListEvent) => {
+        setIsDarkMode(e.matches);
+      };
+
+      mediaQuery.addEventListener("change", handleChange);
+      return () => mediaQuery.removeEventListener("change", handleChange);
+    }
+  }, [theme]);
+
+  return isDarkMode;
+};
+
+// Calculate consistent heights for editor and preview
+const EDITOR_HEIGHT = "71vh";
+const CONTENT_HEIGHT = "66vh"; // Slightly smaller to account for header
+
+// Preview renderer based on language - takes isDarkMode as a parameter
+const renderPreview = (
+  code: string,
+  language: string,
+  validation: { isValid: boolean; error?: string },
+  isDarkMode: boolean
+) => {
+  if (!code) return null;
+
+  let sanitizedHtml = "";
+  let formattedJson = "";
+  let highlightedCode = "";
+
+  // Use appropriate highlight.js theme based on mode
+  document.documentElement.classList.toggle("light-code", !isDarkMode);
+  document.documentElement.classList.toggle("dark-code", isDarkMode);
+
+  switch (language) {
+    case "markdown":
+      // Render markdown using react-markdown with plugins
+      try {
+        return (
+          <div className="markdown-preview h-full">
+            <div className="border-b border-border mb-4 pb-2 text-xs text-muted-foreground flex justify-between items-center">
+              <span className="flex items-center">
+                <FileText size={12} className="mr-1.5" /> Markdown Preview
+              </span>
+              <span className="bg-green-500/20 text-green-400 text-xs px-2 py-0.5 rounded">
+                Live Preview
+              </span>
+            </div>
+
+            <div
+              style={{
+                backgroundColor: isDarkMode ? "#1e1e2d" : "#fcfcfc",
+                height: CONTENT_HEIGHT,
+              }}
+              className={`p-4 rounded shadow-sm overflow-auto ${
+                !isDarkMode ? "border border-gray-200" : ""
+              }`}
+            >
+              <div
+                className={`${
+                  isDarkMode ? "prose-invert" : "prose"
+                } prose prose-headings:mt-4 prose-headings:mb-3 prose-p:my-2 prose-a:no-underline hover:prose-a:underline prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:p-4 prose-li:my-1 max-w-none ${
+                  isDarkMode
+                    ? "prose-a:text-indigo-400 prose-code:bg-black/30 prose-code:text-pink-300 prose-pre:bg-[#0d0d17]"
+                    : "prose-a:text-indigo-600 prose-code:bg-gray-100 prose-code:text-violet-700 prose-pre:bg-gray-100 prose-headings:text-gray-900 prose-p:text-gray-700"
+                }`}
+              >
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  rehypePlugins={[rehypeHighlight]}
+                >
+                  {code}
+                </ReactMarkdown>
+              </div>
+            </div>
+          </div>
+        );
+      } catch (error) {
+        return (
+          <div className="text-red-500 p-4 bg-red-500/10 rounded border border-red-500/30">
+            <div className="font-semibold mb-1">Error rendering Markdown:</div>
+            <div className="text-sm font-mono">{String(error)}</div>
+          </div>
+        );
+      }
+
+    case "html":
+      // Render HTML with sanitization
+      try {
+        sanitizedHtml = DOMPurify.sanitize(code);
+        return (
+          <div className="html-preview h-full">
+            <div className="border-b border-border mb-4 pb-2 text-xs text-muted-foreground flex justify-between items-center">
+              <span>HTML Preview (sanitized)</span>
+              <span className="bg-green-500/20 text-green-400 text-xs px-2 py-0.5 rounded">
+                Live Preview
+              </span>
+            </div>
+            <div
+              className={`html-render border p-4 bg-white text-black rounded shadow-md overflow-auto ${
+                !isDarkMode && "border-gray-200"
+              }`}
+              style={{ height: CONTENT_HEIGHT }}
+            >
+              {parse(sanitizedHtml)}
+            </div>
+          </div>
+        );
+      } catch (error) {
+        return (
+          <div className="text-red-500">
+            Error rendering HTML: {String(error)}
+          </div>
+        );
+      }
+
+    case "css":
+      // CSS preview with live styling
+      try {
+        // Generate a few sample elements to demonstrate the CSS
+        const sampleHtml = `
+          <div class="css-preview-container">
+            <div class="sample-element sample-box">Box Element</div>
+            <div class="sample-element sample-text">Text Element</div>
+            <div class="sample-element sample-btn">Button Element</div>
+            <div class="sample-element sample-card">
+              <div class="card-header">Card Header</div>
+              <div class="card-body">Card content goes here</div>
+            </div>
+          </div>
+        `;
+
+        return (
+          <div className="css-preview h-full">
+            <div className="border-b border-border mb-4 pb-2 text-xs text-muted-foreground flex justify-between items-center">
+              <span className="flex items-center">
+                <FileText size={12} className="mr-1.5" /> CSS Preview
+              </span>
+              <span
+                className={`text-xs px-2 py-0.5 rounded ${
+                  validation.isValid
+                    ? "bg-green-500/20 text-green-400"
+                    : "bg-red-500/20 text-red-400"
+                }`}
+              >
+                {validation.isValid ? "Valid CSS" : "CSS Errors"}
+              </span>
+            </div>
+
+            <div
+              className="flex flex-col bg-white text-black p-6 rounded overflow-auto border shadow-sm"
+              style={{ height: CONTENT_HEIGHT }}
+            >
+              <div className="text-xs text-gray-600 mb-4 border-b border-gray-200 pb-2">
+                <Eye size={12} className="mr-1.5 inline-block" /> Visual Preview
+              </div>
+              <style dangerouslySetInnerHTML={{ __html: code }} />
+              <div dangerouslySetInnerHTML={{ __html: sampleHtml }} />
+            </div>
+          </div>
+        );
+      } catch (error) {
+        return (
+          <div className="text-red-500 p-4 bg-red-500/10 rounded border border-red-500/30">
+            <div className="font-semibold mb-1">Error rendering CSS:</div>
+            <div className="text-sm font-mono">{String(error)}</div>
+          </div>
+        );
+      }
+
+    case "json":
+      // Pretty-print JSON
+      try {
+        formattedJson = JSON.stringify(JSON.parse(code), null, 2);
+        // Use highlight.js for JSON syntax highlighting
+        const highlightedJson = hljs.highlight(formattedJson, {
+          language: "json",
+        }).value;
+
+        return (
+          <div className="json-preview h-full">
+            <div className="border-b border-border mb-4 pb-2 text-xs text-muted-foreground flex justify-between items-center">
+              <span className="flex items-center">
+                <FileText size={12} className="mr-1.5" /> Formatted JSON
+              </span>
+              <span className="bg-blue-500/20 text-blue-400 text-xs px-2 py-0.5 rounded">
+                Validated
+              </span>
+            </div>
+            <pre
+              className={`font-mono text-sm overflow-auto p-4 rounded ${
+                isDarkMode
+                  ? "bg-[#1e1e2d] text-white"
+                  : "bg-[#fcfcfc] text-[#333333] border border-gray-200"
+              }`}
+              style={{ height: CONTENT_HEIGHT }}
+            >
+              <code
+                dangerouslySetInnerHTML={{
+                  __html: highlightedJson,
+                }}
+                className="language-json hljs"
+              />
+            </pre>
+          </div>
+        );
+      } catch (error) {
+        return (
+          <div className="text-red-500 p-4 bg-red-500/10 rounded border border-red-500/30">
+            <div className="font-semibold mb-1">Error formatting JSON:</div>
+            <div className="text-sm font-mono">{String(error)}</div>
+          </div>
+        );
+      }
+
+    default:
+      // For other languages, use syntax highlighting
+      try {
+        highlightedCode = language
+          ? hljs.highlight(code, { language: language }).value
+          : hljs.highlightAuto(code).value;
+
+        const languageLabel =
+          languageOptions.find((l) => l.value === language)?.label || language;
+
+        return (
+          <div className="code-preview h-full">
+            <div className="border-b border-border mb-4 pb-2 text-xs text-muted-foreground flex justify-between items-center">
+              <span className="flex items-center">
+                <FileText size={12} className="mr-1.5" /> {languageLabel} Syntax
+                Highlighting
+              </span>
+              <span className="bg-purple-500/20 text-purple-400 text-xs px-2 py-0.5 rounded">
+                {validation.isValid ? "Valid Syntax" : "Syntax Error"}
+              </span>
+            </div>
+            <pre
+              className={`font-mono text-sm overflow-auto p-4 rounded ${
+                isDarkMode
+                  ? "bg-[#1e1e2d] text-white"
+                  : "bg-[#fcfcfc] text-[#333333] border border-gray-200"
+              }`}
+              style={{ height: CONTENT_HEIGHT }}
+            >
+              <code
+                dangerouslySetInnerHTML={{
+                  __html: highlightedCode,
+                }}
+                className={`language-${language} hljs`}
+              />
+            </pre>
+          </div>
+        );
+      } catch (error) {
+        // Fallback to regular code display
+        return (
+          <pre
+            className={`font-mono text-sm overflow-auto p-4 rounded ${
+              isDarkMode
+                ? "bg-[#1e1e2d] text-white"
+                : "bg-[#fcfcfc] text-[#333333] border border-gray-200"
+            }`}
+            style={{ height: CONTENT_HEIGHT }}
+          >
+            <code>{code}</code>
+          </pre>
+        );
+      }
+  }
+};
+
 const PasteCodeEditor: React.FC = () => {
   const [code, setCode] = useState<string>("");
   const [language, setLanguage] = useState<string>("javascript");
   const [isGeneratingLink, setIsGeneratingLink] = useState<boolean>(false);
   const [generatedLink, setGeneratedLink] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>("editor");
+  const [validation, setValidation] = useState<{
+    isValid: boolean;
+    error?: string;
+  }>({
+    isValid: true,
+  });
 
+  const isDarkMode = useIsDarkMode();
   const { toast } = useToast();
 
   const form = useForm<FormValues>({
@@ -350,17 +792,40 @@ const PasteCodeEditor: React.FC = () => {
     },
   });
 
-  // Set sample code when language changes
+  // Track if user has edited the code
+  const userHasEditedCode = useRef(false);
+
+  // Set sample code when language changes, but not when user intentionally clears the editor
   useEffect(() => {
-    if (code === "" || Object.values(languageSamples).includes(code)) {
+    // Only set sample code if the code is empty and it's the initial load
+    // or if the current code is from another language sample (from the samples dictionary)
+    const isCurrentCodeASample = Object.values(languageSamples).includes(code);
+    const isEmptyEditor = code === "";
+
+    if ((isEmptyEditor && !userHasEditedCode.current) || isCurrentCodeASample) {
       const sample =
         languageSamples[language as keyof typeof languageSamples] || "";
       setCode(sample);
     }
   }, [language, code]);
 
+  // Add validation when code changes
+  useEffect(() => {
+    if (code.trim()) {
+      const result = validateCode(code, language);
+      setValidation(result);
+    } else {
+      setValidation({ isValid: true });
+    }
+  }, [code, language]);
+
   const handleLanguageChange = (value: string) => {
     setLanguage(value);
+  };
+
+  const handleCodeChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    userHasEditedCode.current = true;
+    setCode(e.target.value);
   };
 
   const handleGenerateLink = (values: FormValues) => {
@@ -457,162 +922,193 @@ const PasteCodeEditor: React.FC = () => {
         value={activeTab}
         onValueChange={setActiveTab}
       >
-        <div className="grid grid-cols-3 items-center mb-3">
-          <div className="flex items-center">
-            <TabsList>
-              <TabsTrigger value="editor">Editor</TabsTrigger>
-              <TabsTrigger value="preview">Preview</TabsTrigger>
-            </TabsList>
-          </div>
+        <div className="flex items-center justify-between mb-1">
+          <TabsList className="h-10">
+            <TabsTrigger value="editor" className="text-sm">
+              Editor
+            </TabsTrigger>
+            <TabsTrigger value="preview" className="text-sm">
+              Preview
+            </TabsTrigger>
+          </TabsList>
 
-          <div className="flex justify-center">
-            <span className="text-lg font-bold bg-gradient-to-r from-primary via-indigo-400 to-purple-500 bg-clip-text text-transparent drop-shadow-sm">
-              Start Sharing Your Code
-            </span>
-          </div>
+          <h1 className="text-xl font-bold text-center bg-gradient-to-r from-primary via-indigo-400 to-purple-500 bg-clip-text text-transparent drop-shadow-md">
+            Start Sharing Your Code
+          </h1>
 
-          <div className="flex justify-end">
-            <Select value={language} onValueChange={handleLanguageChange}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Language" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectLabel>Languages</SelectLabel>
-                  {languageOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-          </div>
+          <Select value={language} onValueChange={handleLanguageChange}>
+            <SelectTrigger className="w-40 h-10">
+              <SelectValue placeholder="Language" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectLabel>Languages</SelectLabel>
+                {languageOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
         </div>
 
-        <div className="bg-card border rounded-lg shadow-sm overflow-hidden mb-3">
+        <div className="bg-card border rounded-lg shadow-sm overflow-hidden mb-2">
           <TabsContent value="editor" className="mt-0">
-            <div className="code-header flex items-center justify-between p-2">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-mono">{language}</span>
-              </div>
-              <div className="flex gap-1">
-                {aiServices.map((service) => (
-                  <TooltipProvider key={service.id}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-7 px-2"
-                          onClick={() => handleAIPaste(service)}
-                        >
-                          <span className="text-xs font-semibold">
-                            {service.name}
-                          </span>
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Copy & open in {service.name}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                ))}
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-7 px-2"
-                  onClick={() =>
-                    copyToClipboard(code, "Code copied to clipboard!")
-                  }
-                >
-                  <Copy size={14} className="mr-1" />
-                  <span className="text-xs">Copy</span>
-                </Button>
-                <Button size="sm" variant="ghost" className="h-7 px-2">
-                  <Download size={14} className="mr-1" />
-                  <span className="text-xs">Download</span>
-                </Button>
-              </div>
-            </div>
-
-            <div className="flex min-h-[65vh] relative">
-              <div className="py-4 bg-[#181824] text-muted-foreground text-right select-none font-mono text-xs w-[3rem] overflow-y-hidden flex flex-col">
-                {code.split("\n").map((_, i) => (
-                  <div
-                    key={i}
-                    className="px-2 h-[1.5rem] flex items-center justify-end"
+            <div className="h-[71vh] flex flex-col">
+              <div className="code-header flex items-center justify-between p-2 border-b">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-mono">{language}</span>
+                  {/* Show validation status */}
+                  {code.trim() && (
+                    <span
+                      className={`text-xs px-2 py-0.5 rounded ${
+                        validation.isValid
+                          ? "bg-green-500/20 text-green-400"
+                          : "bg-red-500/20 text-red-400"
+                      }`}
+                    >
+                      {validation.isValid ? "Valid" : "Invalid"}
+                    </span>
+                  )}
+                  {!validation.isValid && (
+                    <span className="text-xs text-red-400">
+                      {validation.error}
+                    </span>
+                  )}
+                </div>
+                <div className="flex gap-1">
+                  {aiServices.map((service) => (
+                    <TooltipProvider key={service.id}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 px-2"
+                            onClick={() => handleAIPaste(service)}
+                          >
+                            <span className="text-xs font-semibold">
+                              {service.name}
+                            </span>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Copy & open in {service.name}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  ))}
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 px-2"
+                    onClick={() =>
+                      copyToClipboard(code, "Code copied to clipboard!")
+                    }
                   >
-                    {i + 1}
-                  </div>
-                ))}
+                    <Copy size={14} className="mr-1" />
+                    <span className="text-xs">Copy</span>
+                  </Button>
+                  <Button size="sm" variant="ghost" className="h-7 px-2">
+                    <Download size={14} className="mr-1" />
+                    <span className="text-xs">Download</span>
+                  </Button>
+                </div>
               </div>
 
-              <div className="flex-1 relative">
-                <CodeEditor
-                  value={code}
-                  language={language}
-                  placeholder="Paste your code or start typing..."
-                  onChange={(e) => setCode(e.target.value)}
-                  padding={15}
-                  style={{
-                    fontSize: "1rem",
-                    fontFamily: "'JetBrains Mono', monospace",
-                    backgroundColor: "#151520",
-                    height: "100%",
-                    borderRadius: "0",
-                    minHeight: "65vh",
-                    lineHeight: "1.5rem",
-                  }}
-                  className="w-full outline-none resize-none min-h-[65vh]"
-                  data-color-mode="dark"
-                />
-              </div>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="preview" className="mt-0">
-            <div className="code-header flex items-center justify-between p-2">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-mono">Preview</span>
-              </div>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-7 px-2"
-                onClick={() => setActiveTab("editor")}
-              >
-                <span className="text-xs">Edit</span>
-              </Button>
-            </div>
-            <div className="p-4 bg-[#151520] min-h-[65vh] overflow-auto">
-              <pre className="text-white font-mono text-sm flex">
-                <div className="pr-4 text-right select-none text-muted-foreground w-10 flex flex-col">
+              <div className="flex flex-1 relative">
+                <div
+                  className={`py-4 text-muted-foreground text-right select-none font-mono text-xs w-[3.5rem] overflow-y-hidden flex flex-col ${
+                    isDarkMode ? "bg-[#181824]" : "bg-gray-100"
+                  }`}
+                >
                   {code.split("\n").map((_, i) => (
                     <div
                       key={i}
-                      className="h-[1.5rem] flex items-center justify-end"
+                      className="px-2 h-[1.5rem] flex items-center justify-end"
+                      style={{ lineHeight: "1.5rem" }}
                     >
                       {i + 1}
                     </div>
                   ))}
                 </div>
-                <div className="pl-4 border-l border-muted-foreground/20 flex flex-col">
-                  {code.split("\n").map((line, i) => (
-                    <div key={i} className="h-[1.5rem] flex items-center">
-                      {line}
-                    </div>
-                  ))}
+
+                <div
+                  className={`flex-1 relative ${
+                    !isDarkMode ? "border-l border-gray-200" : ""
+                  }`}
+                >
+                  <CodeEditor
+                    value={code}
+                    language={language}
+                    placeholder="Paste your code or start typing..."
+                    onChange={handleCodeChange}
+                    padding={15}
+                    style={{
+                      fontSize: "1rem",
+                      fontFamily: "'JetBrains Mono', monospace",
+                      backgroundColor: isDarkMode ? "#151520" : "#fcfcfc",
+                      color: isDarkMode ? "#ffffff" : "#333333",
+                      height: "100%",
+                      borderRadius: "0",
+                      lineHeight: "1.5rem",
+                    }}
+                    className="w-full outline-none resize-none h-full"
+                    data-color-mode={isDarkMode ? "dark" : "light"}
+                  />
                 </div>
-              </pre>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="preview" className="mt-0">
+            <div className="h-[71vh] flex flex-col">
+              <div className="code-header flex items-center justify-between p-2 border-b">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-mono">Preview</span>
+                  <span className="text-xs text-muted-foreground">
+                    {language === "markdown"
+                      ? "Rendered Markdown"
+                      : language === "html"
+                      ? "Rendered HTML"
+                      : language === "css"
+                      ? "Styled Elements"
+                      : language === "json"
+                      ? "Formatted JSON"
+                      : "Syntax Highlighted"}
+                  </span>
+                </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 px-2"
+                  onClick={() => setActiveTab("editor")}
+                >
+                  <span className="text-xs">Edit</span>
+                </Button>
+              </div>
+              <div
+                style={{
+                  backgroundColor: isDarkMode ? "#151520" : "#fcfcfc",
+                  boxShadow: isDarkMode
+                    ? "none"
+                    : "inset 0 1px 2px rgba(0,0,0,0.05)",
+                  flex: 1,
+                }}
+                className="p-4 overflow-auto"
+              >
+                {/* Language-specific preview */}
+                {renderPreview(code, language, validation, isDarkMode)}
+              </div>
             </div>
           </TabsContent>
         </div>
 
         <div className="grid md:grid-cols-2 gap-3">
-          <div className="bg-card rounded-lg border shadow-sm p-3">
+          <div className="bg-card rounded-lg border shadow-sm p-4">
             <div className="mb-2 pb-2 border-b flex justify-between items-center">
-              <h3 className="text-sm font-medium">Share Options</h3>
+              <h3 className="text-sm font-semibold">Share Options</h3>
               {generatedLink && (
                 <div className="flex items-center ml-2">
                   <div className="text-xs font-mono bg-secondary/50 px-2 py-1 rounded max-w-[280px] overflow-x-auto whitespace-nowrap mr-2">
@@ -711,8 +1207,8 @@ const PasteCodeEditor: React.FC = () => {
             </Form>
           </div>
 
-          <div className="bg-card rounded-lg border shadow-sm p-3">
-            <h3 className="text-sm font-medium mb-2 pb-2 border-b">Stats</h3>
+          <div className="bg-card rounded-lg border shadow-sm p-4">
+            <h3 className="text-sm font-semibold mb-2 pb-2 border-b">Stats</h3>
             <div className="grid grid-cols-2 gap-x-8 gap-y-3">
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground flex items-center">
