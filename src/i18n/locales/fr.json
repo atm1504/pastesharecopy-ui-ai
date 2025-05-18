@@ -1,18 +1,18 @@
 {
   "general": {
     "appName": "PasteShareCopy",
-    "tagline": "Partagez des Extraits de Code Facilement",
+    "tagline": "Partagez vos Extraits de Code en Toute Simplicité",
     "404": "404",
     "pageNotFound": "Oups ! Page non trouvée",
-    "returnHome": "Retour à l'accueil",
+    "returnHome": "Retour à l'Accueil",
     "github": "GitHub",
     "language": "Langue",
-    "toggleTheme": "Changer de thème",
+    "toggleTheme": "Changer le thème",
     "close": "Fermer"
   },
   "hero": {
-    "title": "Partagez des Extraits de Code Facilement",
-    "description": "Créez, partagez et stockez vos extraits de code en quelques secondes. Une coloration syntaxique parfaite, avec des fonctionnalités puissantes pour partager votre code sans effort."
+    "title": "Partagez vos Extraits de Code en Toute Simplicité",
+    "description": "Créez, partagez et stockez vos extraits de code en quelques secondes. Mise en évidence de la syntaxe parfaite, avec des fonctionnalités puissantes pour rendre le partage de votre code facile."
   },
   "navigation": {
     "home": "Accueil",
@@ -43,7 +43,7 @@
   },
   "actions": {
     "startPasting": "Commencer à Coller",
-    "viewPlans": "Voir les Plans",
+    "viewPlans": "Voir les Forfaits",
     "tryNow": "Essayer Maintenant",
     "learnMore": "En Savoir Plus",
     "share": "Partager",
@@ -53,8 +53,8 @@
     "edit": "Modifier"
   },
   "editor": {
-    "language": "Langage",
-    "languages": "Langages",
+    "language": "Langue",
+    "languages": "Langues",
     "theme": "Thème",
     "fontSize": "Taille de Police",
     "lineNumbers": "Numéros de Ligne",
@@ -63,7 +63,7 @@
     "wrapLines": "Retour à la Ligne",
     "placeholder": "Collez votre code ici...",
     "preview": "Aperçu",
-    "htmlPreview": "Aperçu HTML (assaini)",
+    "htmlPreview": "Aperçu HTML (nettoyé)",
     "shareOptions": "Options de Partage",
     "stats": "Statistiques",
     "justNow": "À l'instant",
@@ -80,12 +80,40 @@
   },
   "features": {
     "title": "Fonctionnalités Puissantes",
-    "syntaxHighlighting": "Coloration Syntaxique",
-    "linkSharing": "Partage de Liens",
-    "privateSnippets": "Extraits Privés",
-    "teamCollaboration": "Collaboration d'Équipe",
-    "versionControl": "Contrôle de Version",
-    "embedding": "Intégration"
+    "subtitle": "Tout ce dont vous avez besoin pour partager vos extraits de code efficacement et en toute sécurité. Nous avons construit l'outil parfait pour les développeurs, par des développeurs.",
+    "syntaxHighlighting": {
+      "title": "Mise en Évidence de la Syntaxe",
+      "description": "Formatage de code élégant avec prise en charge de plus de 100 langages de programmation."
+    },
+    "easySharing": {
+      "title": "Partage Facile",
+      "description": "Générez et partagez des liens instantanément avec n'importe qui, n'importe où."
+    },
+    "flexibleExpiration": {
+      "title": "Expiration Flexible",
+      "description": "Définissez l'expiration de votre collage après une durée spécifique, de 1 jour à 1 an."
+    },
+    "passwordProtection": {
+      "title": "Protection par Mot de Passe",
+      "description": "Gardez votre code sensible en sécurité avec une protection optionnelle par mot de passe."
+    },
+    "multipleThemes": {
+      "title": "Thèmes Multiples",
+      "description": "Choisissez parmi une variété de thèmes pour que votre code soit parfaitement présenté."
+    },
+    "lightningFast": {
+      "title": "Ultra Rapide",
+      "description": "Notre plateforme optimisée garantit que vos collages se chargent instantanément, à chaque fois."
+    }
+  },
+  "stats": {
+    "pastesCreated": "Collages Créés",
+    "dailyUsers": "Utilisateurs Quotidiens",
+    "languages": "Langages",
+    "uptime": "Disponibilité",
+    "linksToday": "Liens Aujourd'hui",
+    "viewsToday": "Vues Aujourd'hui",
+    "totalShares": "Partages Totaux"
   },
   "pricing": {
     "title": "Tarification Simple et Transparente"
@@ -100,7 +128,7 @@
         "about": "À Propos",
         "contact": "Contact"
       },
-      "content": "Ceci est un exemple de page HTML."
+      "content": "Ceci est une page HTML d'exemple."
     },
     "css": {
       "boxElement": "Élément Boîte",

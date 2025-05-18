@@ -12,7 +12,7 @@
   },
   "hero": {
     "title": "Comparte Fragmentos de Código con Facilidad",
-    "description": "Crea, comparte y almacena tus fragmentos de código en segundos. Resaltado de sintaxis perfecto, con potentes funciones para compartir tu código sin esfuerzo."
+    "description": "Crea, comparte y almacena tus fragmentos de código en segundos. Resaltado de sintaxis perfecto, con potentes funciones para hacer que compartir tu código sea sencillo."
   },
   "navigation": {
     "home": "Inicio",
@@ -42,7 +42,7 @@
     "openLink": "Abrir enlace"
   },
   "actions": {
-    "startPasting": "Empezar a Pegar",
+    "startPasting": "Comenzar a Pegar",
     "viewPlans": "Ver Planes",
     "tryNow": "Probar Ahora",
     "learnMore": "Saber Más",
@@ -53,8 +53,8 @@
     "edit": "Editar"
   },
   "editor": {
-    "language": "Lenguaje",
-    "languages": "Lenguajes",
+    "language": "Idioma",
+    "languages": "Idiomas",
     "theme": "Tema",
     "fontSize": "Tamaño de Fuente",
     "lineNumbers": "Números de Línea",
@@ -62,8 +62,8 @@
     "tabSize": "Tamaño de Tabulación",
     "wrapLines": "Ajustar Líneas",
     "placeholder": "Pega tu código aquí...",
-    "preview": "Vista previa",
-    "htmlPreview": "Vista previa HTML (sanitizada)",
+    "preview": "Vista Previa",
+    "htmlPreview": "Vista Previa HTML (sanitizada)",
     "shareOptions": "Opciones de Compartir",
     "stats": "Estadísticas",
     "justNow": "Ahora mismo",
@@ -79,13 +79,41 @@
     }
   },
   "features": {
-    "title": "Funciones Potentes",
-    "syntaxHighlighting": "Resaltado de Sintaxis",
-    "linkSharing": "Compartir Enlaces",
-    "privateSnippets": "Fragmentos Privados",
-    "teamCollaboration": "Colaboración en Equipo",
-    "versionControl": "Control de Versiones",
-    "embedding": "Incrustación"
+    "title": "Características Potentes",
+    "subtitle": "Todo lo que necesitas para compartir tus fragmentos de código de manera eficiente y segura. Hemos construido la herramienta perfecta para desarrolladores, por desarrolladores.",
+    "syntaxHighlighting": {
+      "title": "Resaltado de Sintaxis",
+      "description": "Formato de código hermoso con soporte para más de 100 lenguajes de programación."
+    },
+    "easySharing": {
+      "title": "Compartir Fácilmente",
+      "description": "Genera y comparte enlaces al instante con cualquiera, en cualquier lugar."
+    },
+    "flexibleExpiration": {
+      "title": "Expiración Flexible",
+      "description": "Establece que tu pegado expire después de un tiempo específico, desde 1 día hasta 1 año."
+    },
+    "passwordProtection": {
+      "title": "Protección con Contraseña",
+      "description": "Mantén tu código sensible seguro con protección opcional por contraseña."
+    },
+    "multipleThemes": {
+      "title": "Múltiples Temas",
+      "description": "Elige entre una variedad de temas para que tu código se vea perfecto."
+    },
+    "lightningFast": {
+      "title": "Ultra Rápido",
+      "description": "Nuestra plataforma optimizada asegura que tus pegado se carguen al instante, cada vez."
+    }
+  },
+  "stats": {
+    "pastesCreated": "Pegados Creados",
+    "dailyUsers": "Usuarios Diarios",
+    "languages": "Lenguajes",
+    "uptime": "Tiempo Activo",
+    "linksToday": "Enlaces Hoy",
+    "viewsToday": "Vistas Hoy",
+    "totalShares": "Compartidos Totales"
   },
   "pricing": {
     "title": "Precios Simples y Transparentes"
@@ -100,7 +128,7 @@
         "about": "Acerca de",
         "contact": "Contacto"
       },
-      "content": "Esta es una página HTML de muestra."
+      "content": "Esta es una página HTML de ejemplo."
     },
     "css": {
       "boxElement": "Elemento Caja",

@@ -1,15 +1,17 @@
-
 import React from "react";
+import { useTranslation } from "react-i18next";
 
 const StatsSection: React.FC = () => {
+  const { t } = useTranslation();
+
   const stats = [
-    { value: "1M+", label: "Pastes Created" },
-    { value: "50K+", label: "Daily Users" },
-    { value: "100+", label: "Languages" },
-    { value: "99.9%", label: "Uptime" },
-    { value: "158", label: "Links Today" },
-    { value: "12.3K", label: "Views Today" },
-    { value: "4.7M+", label: "Total Shares" }
+    { value: "1M+", label: t("stats.pastesCreated") },
+    { value: "50K+", label: t("stats.dailyUsers") },
+    { value: "100+", label: t("stats.languages") },
+    { value: "99.9%", label: t("stats.uptime") },
+    { value: "158", label: t("stats.linksToday") },
+    { value: "12.3K", label: t("stats.viewsToday") },
+    { value: "4.7M+", label: t("stats.totalShares") },
   ];
 
   return (

@@ -3,7 +3,7 @@
     "appName": "PasteShareCopy",
     "tagline": "轻松分享代码片段",
     "404": "404",
-    "pageNotFound": "糟糕！页面未找到",
+    "pageNotFound": "页面未找到",
     "returnHome": "返回首页",
     "github": "GitHub",
     "language": "语言",
@@ -12,7 +12,7 @@
   },
   "hero": {
     "title": "轻松分享代码片段",
-    "description": "几秒钟内创建、分享和存储代码片段。完美的语法高亮，强大的功能使分享代码变得毫不费力。"
+    "description": "几秒钟内创建、分享和存储您的代码片段。完美的语法高亮，配备强大的功能，让代码分享变得简单。"
   },
   "navigation": {
     "home": "首页",
@@ -21,12 +21,12 @@
     "docs": "文档",
     "login": "登录",
     "signup": "注册",
-    "dashboard": "控制台",
+    "dashboard": "仪表板",
     "settings": "设置",
     "products": "产品",
     "resources": "资源",
     "company": "公司",
-    "about": "关于我们",
+    "about": "关于",
     "blog": "博客",
     "careers": "招聘",
     "contact": "联系我们",
@@ -37,14 +37,14 @@
     "terms": "条款",
     "privacy": "隐私",
     "cookies": "Cookie",
-    "copyright": "版权所有。",
+    "copyright": "All rights reserved.",
     "yourSharedLinks": "您的共享链接",
     "openLink": "打开链接"
   },
   "actions": {
     "startPasting": "开始粘贴",
     "viewPlans": "查看方案",
-    "tryNow": "立即尝试",
+    "tryNow": "立即试用",
     "learnMore": "了解更多",
     "share": "分享",
     "copy": "复制",
@@ -54,7 +54,7 @@
   },
   "editor": {
     "language": "语言",
-    "languages": "语言列表",
+    "languages": "语言",
     "theme": "主题",
     "fontSize": "字体大小",
     "lineNumbers": "行号",
@@ -63,7 +63,7 @@
     "wrapLines": "自动换行",
     "placeholder": "在此粘贴您的代码...",
     "preview": "预览",
-    "htmlPreview": "HTML预览（已净化）",
+    "htmlPreview": "HTML预览（已清理）",
     "shareOptions": "分享选项",
     "stats": "统计",
     "justNow": "刚刚",
@@ -80,34 +80,62 @@
   },
   "features": {
     "title": "强大功能",
-    "syntaxHighlighting": "语法高亮",
-    "linkSharing": "链接分享",
-    "privateSnippets": "私人片段",
-    "teamCollaboration": "团队协作",
-    "versionControl": "版本控制",
-    "embedding": "嵌入功能"
+    "subtitle": "提供高效安全地分享代码片段所需的一切功能。我们为开发者打造了完美的工具。",
+    "syntaxHighlighting": {
+      "title": "语法高亮",
+      "description": "支持100多种编程语言的精美代码格式化。"
+    },
+    "easySharing": {
+      "title": "轻松分享",
+      "description": "随时随地立即生成和分享链接。"
+    },
+    "flexibleExpiration": {
+      "title": "灵活过期",
+      "description": "设置代码片段在特定时间后过期，从1天到1年不等。"
+    },
+    "passwordProtection": {
+      "title": "密码保护",
+      "description": "通过可选的密码保护确保敏感代码的安全。"
+    },
+    "multipleThemes": {
+      "title": "多种主题",
+      "description": "从各种主题中选择，让您的代码看起来完美无缺。"
+    },
+    "lightningFast": {
+      "title": "极速加载",
+      "description": "我们的优化平台确保您的代码片段每次都能即时加载。"
+    }
+  },
+  "stats": {
+    "pastesCreated": "已创建片段",
+    "dailyUsers": "日活跃用户",
+    "languages": "语言",
+    "uptime": "运行时间",
+    "linksToday": "今日链接",
+    "viewsToday": "今日浏览量",
+    "totalShares": "总分享数"
   },
   "pricing": {
     "title": "简单透明的价格"
   },
   "samples": {
-    "welcome": "欢迎使用我们的应用程序。",
+    "welcome": "欢迎使用我们的应用。",
     "myWebsite": {
       "title": "我的网站",
-      "heading": "欢迎访问我的网站",
+      "heading": "欢迎来到我的网站",
       "nav": {
         "home": "首页",
         "about": "关于",
-        "contact": "联系"
+        "contact": "联系我们"
       },
-      "content": "这是一个HTML示例页面。"
+      "content": "这是一个示例HTML页面。"
     },
     "css": {
       "boxElement": "盒子元素",
       "textElement": "文本元素",
       "buttonElement": "按钮元素",
-      "cardHeader": "卡片头部",
-      "cardContent": "卡片内容在这里"
+      "cardHeader": "卡片标题",
+      "cardContent": "卡片内容将显示在这里"
     }
   }
 }

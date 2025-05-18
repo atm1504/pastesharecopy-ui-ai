@@ -80,12 +80,40 @@
   },
   "features": {
     "title": "Powerful Features",
-    "syntaxHighlighting": "Syntax Highlighting",
-    "linkSharing": "Link Sharing",
-    "privateSnippets": "Private Snippets",
-    "teamCollaboration": "Team Collaboration",
-    "versionControl": "Version Control",
-    "embedding": "Embedding"
+    "subtitle": "Everything you need to share your code snippets efficiently and securely. We've built the perfect tool for developers, by developers.",
+    "syntaxHighlighting": {
+      "title": "Syntax Highlighting",
+      "description": "Beautiful code formatting with support for over 100 programming languages."
+    },
+    "easySharing": {
+      "title": "Easy Sharing",
+      "description": "Generate and share links instantly with anyone, anywhere."
+    },
+    "flexibleExpiration": {
+      "title": "Flexible Expiration",
+      "description": "Set your paste to expire after a specific time, from 1 day to 1 year."
+    },
+    "passwordProtection": {
+      "title": "Password Protection",
+      "description": "Keep your sensitive code secure with optional password protection."
+    },
+    "multipleThemes": {
+      "title": "Multiple Themes",
+      "description": "Choose from a variety of themes to make your code look just right."
+    },
+    "lightningFast": {
+      "title": "Lightning Fast",
+      "description": "Our optimized platform ensures your pastes load instantly, every time."
+    }
+  },
+  "stats": {
+    "pastesCreated": "Pastes Created",
+    "dailyUsers": "Daily Users",
+    "languages": "Languages",
+    "uptime": "Uptime",
+    "linksToday": "Links Today",
+    "viewsToday": "Views Today",
+    "totalShares": "Total Shares"
   },
   "pricing": {
     "title": "Simple, Transparent Pricing"

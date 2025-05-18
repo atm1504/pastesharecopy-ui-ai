@@ -1,18 +1,18 @@
 {
   "general": {
     "appName": "PasteShareCopy",
-    "tagline": "Code-Snippets einfach teilen",
+    "tagline": "Code-Snippets Einfach Teilen",
     "404": "404",
-    "pageNotFound": "Hoppla! Seite nicht gefunden",
+    "pageNotFound": "Ups! Seite nicht gefunden",
     "returnHome": "Zurück zur Startseite",
     "github": "GitHub",
     "language": "Sprache",
-    "toggleTheme": "Thema umschalten",
+    "toggleTheme": "Theme wechseln",
     "close": "Schließen"
   },
   "hero": {
-    "title": "Code-Snippets einfach teilen",
-    "description": "Erstellen, teilen und speichern Sie Ihre Code-Snippets in Sekundenschnelle. Perfekte Syntaxhervorhebung mit leistungsstarken Funktionen, um Ihren Code mühelos zu teilen."
+    "title": "Code-Snippets Einfach Teilen",
+    "description": "Erstellen, teilen und speichern Sie Ihre Code-Snippets in Sekunden. Perfekte Syntaxhervorhebung mit leistungsstarken Funktionen für müheloses Teilen Ihres Codes."
   },
   "navigation": {
     "home": "Startseite",
@@ -42,10 +42,10 @@
     "openLink": "Link öffnen"
   },
   "actions": {
-    "startPasting": "Jetzt Einfügen",
-    "viewPlans": "Pläne Anzeigen",
-    "tryNow": "Jetzt Ausprobieren",
-    "learnMore": "Mehr Erfahren",
+    "startPasting": "Mit Einfügen beginnen",
+    "viewPlans": "Pläne ansehen",
+    "tryNow": "Jetzt testen",
+    "learnMore": "Mehr erfahren",
     "share": "Teilen",
     "copy": "Kopieren",
     "download": "Herunterladen",
@@ -55,7 +55,7 @@
   "editor": {
     "language": "Sprache",
     "languages": "Sprachen",
-    "theme": "Thema",
+    "theme": "Theme",
     "fontSize": "Schriftgröße",
     "lineNumbers": "Zeilennummern",
     "indentation": "Einrückung",
@@ -64,7 +64,7 @@
     "placeholder": "Fügen Sie Ihren Code hier ein...",
     "preview": "Vorschau",
     "htmlPreview": "HTML-Vorschau (bereinigt)",
-    "shareOptions": "Freigabeoptionen",
+    "shareOptions": "Teilen-Optionen",
     "stats": "Statistiken",
     "justNow": "Gerade eben",
     "views": "4.7M+",
@@ -80,15 +80,43 @@
   },
   "features": {
     "title": "Leistungsstarke Funktionen",
-    "syntaxHighlighting": "Syntaxhervorhebung",
-    "linkSharing": "Link-Freigabe",
-    "privateSnippets": "Private Snippets",
-    "teamCollaboration": "Team-Zusammenarbeit",
-    "versionControl": "Versionskontrolle",
-    "embedding": "Einbettung"
+    "subtitle": "Alles, was Sie brauchen, um Ihre Code-Snippets effizient und sicher zu teilen. Wir haben das perfekte Tool für Entwickler von Entwicklern gebaut.",
+    "syntaxHighlighting": {
+      "title": "Syntaxhervorhebung",
+      "description": "Schöne Code-Formatierung mit Unterstützung für über 100 Programmiersprachen."
+    },
+    "easySharing": {
+      "title": "Einfaches Teilen",
+      "description": "Generieren und teilen Sie Links sofort mit jedem, überall."
+    },
+    "flexibleExpiration": {
+      "title": "Flexible Ablaufzeit",
+      "description": "Legen Sie fest, dass Ihr Snippet nach einer bestimmten Zeit abläuft, von 1 Tag bis 1 Jahr."
+    },
+    "passwordProtection": {
+      "title": "Passwortschutz",
+      "description": "Halten Sie Ihren sensiblen Code mit optionalem Passwortschutz sicher."
+    },
+    "multipleThemes": {
+      "title": "Mehrere Themes",
+      "description": "Wählen Sie aus einer Vielzahl von Themes, damit Ihr Code perfekt aussieht."
+    },
+    "lightningFast": {
+      "title": "Blitzschnell",
+      "description": "Unsere optimierte Plattform stellt sicher, dass Ihre Snippets jedes Mal sofort geladen werden."
+    }
+  },
+  "stats": {
+    "pastesCreated": "Erstellte Snippets",
+    "dailyUsers": "Tägliche Nutzer",
+    "languages": "Sprachen",
+    "uptime": "Betriebszeit",
+    "linksToday": "Links heute",
+    "viewsToday": "Aufrufe heute",
+    "totalShares": "Gesamte Shares"
   },
   "pricing": {
-    "title": "Einfache, transparente Preisgestaltung"
+    "title": "Einfache, Transparente Preise"
   },
   "samples": {
     "welcome": "Willkommen in unserer Anwendung.",
@@ -100,14 +128,14 @@
         "about": "Über uns",
         "contact": "Kontakt"
       },
-      "content": "Dies ist eine HTML-Beispielseite."
+      "content": "Dies ist eine Beispiel-HTML-Seite."
     },
     "css": {
       "boxElement": "Box-Element",
       "textElement": "Text-Element",
       "buttonElement": "Button-Element",
       "cardHeader": "Karten-Header",
-      "cardContent": "Karteninhalt kommt hier hin"
+      "cardContent": "Karteninhalt kommt hier"
     }
   }
 }
