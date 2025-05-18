@@ -54,6 +54,7 @@ import parse from "html-react-parser";
 import hljs from "highlight.js";
 import "highlight.js/styles/atom-one-dark.css";
 import { useTheme } from "@/hooks/useTheme";
+import { useTranslation } from "react-i18next";
 
 // Import light theme for hljs
 import "highlight.js/styles/github.css";
@@ -782,6 +783,7 @@ const PasteCodeEditor: React.FC = () => {
 
   const isDarkMode = useIsDarkMode();
   const { toast } = useToast();
+  const { t } = useTranslation();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -1108,7 +1110,9 @@ const PasteCodeEditor: React.FC = () => {
         <div className="grid md:grid-cols-2 gap-3">
           <div className="bg-card rounded-lg border shadow-sm p-4">
             <div className="mb-2 pb-2 border-b flex justify-between items-center">
-              <h3 className="text-sm font-semibold">Share Options</h3>
+              <h3 className="text-sm font-semibold">
+                {t("editor.shareOptions")}
+              </h3>
               {generatedLink && (
                 <div className="flex items-center ml-2">
                   <div className="text-xs font-mono bg-secondary/50 px-2 py-1 rounded max-w-[280px] overflow-x-auto whitespace-nowrap mr-2">
@@ -1119,7 +1123,7 @@ const PasteCodeEditor: React.FC = () => {
                     variant="ghost"
                     className="h-7 w-7 p-0 flex-shrink-0"
                     onClick={() =>
-                      copyToClipboard(generatedLink, "Link copied!")
+                      copyToClipboard(generatedLink, t("actions.copy"))
                     }
                   >
                     <Copy size={13} />
@@ -1147,13 +1151,23 @@ const PasteCodeEditor: React.FC = () => {
                               defaultValue={field.value}
                             >
                               <SelectTrigger className="h-9 text-sm border-0 bg-transparent hover:bg-secondary/10 w-32 pl-0 rounded-none focus:ring-0 focus:ring-offset-0">
-                                <SelectValue placeholder="Expiration" />
+                                <SelectValue
+                                  placeholder={t("editor.expiration.1d")}
+                                />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="1d">1 day</SelectItem>
-                                <SelectItem value="2d">2 days</SelectItem>
-                                <SelectItem value="3d">3 days</SelectItem>
-                                <SelectItem value="7d">7 days</SelectItem>
+                                <SelectItem value="1d">
+                                  {t("editor.expiration.1d")}
+                                </SelectItem>
+                                <SelectItem value="2d">
+                                  {t("editor.expiration.2d")}
+                                </SelectItem>
+                                <SelectItem value="3d">
+                                  {t("editor.expiration.3d")}
+                                </SelectItem>
+                                <SelectItem value="7d">
+                                  {t("editor.expiration.7d")}
+                                </SelectItem>
                                 <SelectItem value="30d" disabled>
                                   30 days (Premium)
                                 </SelectItem>
@@ -1177,7 +1191,7 @@ const PasteCodeEditor: React.FC = () => {
                           <div className="flex items-center gap-1.5">
                             <Lock size={15} className="text-primary" />
                             <FormLabel className="text-sm cursor-not-allowed text-muted-foreground m-0">
-                              Password
+                              {t("editor.password", "Password")}
                             </FormLabel>
                           </div>
                           <FormControl>
@@ -1201,24 +1215,29 @@ const PasteCodeEditor: React.FC = () => {
                   disabled={isGeneratingLink || !code.trim()}
                 >
                   <LinkIcon size={15} />
-                  {isGeneratingLink ? "Generating..." : "Generate link"}
+                  {isGeneratingLink
+                    ? t("actions.generating", "Generating...")
+                    : t("actions.generateLink", "Generate link")}
                 </Button>
               </form>
             </Form>
           </div>
 
           <div className="bg-card rounded-lg border shadow-sm p-4">
-            <h3 className="text-sm font-semibold mb-2 pb-2 border-b">Stats</h3>
+            <h3 className="text-sm font-semibold mb-2 pb-2 border-b">
+              {t("editor.stats")}
+            </h3>
             <div className="grid grid-cols-2 gap-x-8 gap-y-3">
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground flex items-center">
-                  <Eye size={15} className="mr-1.5" /> Views
+                  <Eye size={15} className="mr-1.5" /> {t("editor.views")}
                 </span>
                 <span className="text-sm font-medium">{pasteStats.views}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground flex items-center">
-                  <FileText size={15} className="mr-1.5" /> Language
+                  <FileText size={15} className="mr-1.5" />{" "}
+                  {t("general.language")}
                 </span>
                 <span className="text-sm font-medium">
                   {languageOptions.find((l) => l.value === language)?.label}
@@ -1226,13 +1245,16 @@ const PasteCodeEditor: React.FC = () => {
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground flex items-center">
-                  <Clock size={15} className="mr-1.5" /> Created
+                  <Clock size={15} className="mr-1.5" /> {t("editor.justNow")}
                 </span>
-                <span className="text-sm font-medium">Just now</span>
+                <span className="text-sm font-medium">
+                  {t("editor.justNow")}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground flex items-center">
-                  <Share2 size={15} className="mr-1.5" /> Shares
+                  <Share2 size={15} className="mr-1.5" />{" "}
+                  {t("editor.shares", "Shares")}
                 </span>
                 <span className="text-sm font-medium">4.7M+</span>
               </div>
