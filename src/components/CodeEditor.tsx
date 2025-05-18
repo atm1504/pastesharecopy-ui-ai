@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import CodeEditor from "@uiw/react-textarea-code-editor";
 import { Button } from "@/components/ui/button";
-import { 
+import {
   Select,
   SelectContent,
   SelectGroup,
@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { 
+import {
   Form,
   FormControl,
   FormField,
@@ -22,16 +22,16 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  Clock, 
-  Copy, 
-  Download, 
-  Link as LinkIcon, 
+import {
+  Clock,
+  Copy,
+  Download,
+  Link as LinkIcon,
   Lock,
   Share2,
   ExternalLink,
   Eye,
-  FileText
+  FileText,
 } from "lucide-react";
 import {
   Tooltip,
@@ -45,12 +45,7 @@ import {
   CardFooter,
   CardHeader,
 } from "@/components/ui/card";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const formSchema = z.object({
   expiration: z.string().min(1),
@@ -288,7 +283,7 @@ INSERT INTO users (username, email) VALUES
 ('janedoe', 'jane@example.com');
 
 -- Query data
-SELECT * FROM users WHERE email LIKE '%@example.com';`
+SELECT * FROM users WHERE email LIKE '%@example.com';`,
 };
 
 const languageOptions = [
@@ -358,7 +353,8 @@ const PasteCodeEditor: React.FC = () => {
   // Set sample code when language changes
   useEffect(() => {
     if (code === "" || Object.values(languageSamples).includes(code)) {
-      const sample = languageSamples[language as keyof typeof languageSamples] || "";
+      const sample =
+        languageSamples[language as keyof typeof languageSamples] || "";
       setCode(sample);
     }
   }, [language, code]);
@@ -369,13 +365,13 @@ const PasteCodeEditor: React.FC = () => {
 
   const handleGenerateLink = (values: FormValues) => {
     setIsGeneratingLink(true);
-    
+
     // Simulate API call
     setTimeout(() => {
       const uniqueId = Math.random().toString(36).substring(2, 10);
       setGeneratedLink(`https://pastesharecopy.com/${uniqueId}`);
       setIsGeneratingLink(false);
-      
+
       toast({
         title: "Link generated successfully!",
         description: "The link will expire based on your selected timeframe.",
@@ -401,7 +397,7 @@ const PasteCodeEditor: React.FC = () => {
 
   const shareLink = async () => {
     if (!generatedLink) return;
-    
+
     try {
       if (navigator.share) {
         await navigator.share({
@@ -419,14 +415,18 @@ const PasteCodeEditor: React.FC = () => {
       console.error("Error sharing:", err);
     }
   };
-  
-  const handleAIPaste = async (service: { id: string, name: string, url: string }) => {
+
+  const handleAIPaste = async (service: {
+    id: string;
+    name: string;
+    url: string;
+  }) => {
     // First, copy the code to clipboard
     try {
       await navigator.clipboard.writeText(code);
-      
+
       // Then open the AI service in a new tab
-      const aiWindow = window.open(service.url, '_blank');
+      const aiWindow = window.open(service.url, "_blank");
       if (aiWindow) {
         toast({
           title: `Code copied for ${service.name}!`,
@@ -435,7 +435,8 @@ const PasteCodeEditor: React.FC = () => {
       } else {
         toast({
           title: `Code copied for ${service.name}!`,
-          description: "Popup blocked, but you can still paste the code manually",
+          description:
+            "Popup blocked, but you can still paste the code manually",
         });
       }
     } catch (err) {
@@ -450,14 +451,27 @@ const PasteCodeEditor: React.FC = () => {
 
   return (
     <div className="w-full mx-auto">
-      <Tabs defaultValue="editor" className="w-full" value={activeTab} onValueChange={setActiveTab}>
-        <div className="flex items-center justify-between mb-4">
-          <TabsList>
-            <TabsTrigger value="editor">Editor</TabsTrigger>
-            <TabsTrigger value="preview">Preview</TabsTrigger>
-          </TabsList>
-          
-          <div className="flex items-center gap-2">
+      <Tabs
+        defaultValue="editor"
+        className="w-full"
+        value={activeTab}
+        onValueChange={setActiveTab}
+      >
+        <div className="grid grid-cols-3 items-center mb-3">
+          <div className="flex items-center">
+            <TabsList>
+              <TabsTrigger value="editor">Editor</TabsTrigger>
+              <TabsTrigger value="preview">Preview</TabsTrigger>
+            </TabsList>
+          </div>
+
+          <div className="flex justify-center">
+            <span className="text-lg font-bold bg-gradient-to-r from-primary via-indigo-400 to-purple-500 bg-clip-text text-transparent drop-shadow-sm">
+              Start Sharing Your Code
+            </span>
+          </div>
+
+          <div className="flex justify-end">
             <Select value={language} onValueChange={handleLanguageChange}>
               <SelectTrigger className="w-40">
                 <SelectValue placeholder="Language" />
@@ -465,7 +479,7 @@ const PasteCodeEditor: React.FC = () => {
               <SelectContent>
                 <SelectGroup>
                   <SelectLabel>Languages</SelectLabel>
-                  {languageOptions.map(option => (
+                  {languageOptions.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       {option.label}
                     </SelectItem>
@@ -475,8 +489,8 @@ const PasteCodeEditor: React.FC = () => {
             </Select>
           </div>
         </div>
-        
-        <div className="bg-card border rounded-lg shadow-sm overflow-hidden">
+
+        <div className="bg-card border rounded-lg shadow-sm overflow-hidden mb-3">
           <TabsContent value="editor" className="mt-0">
             <div className="code-header flex items-center justify-between p-2">
               <div className="flex items-center gap-2">
@@ -487,13 +501,15 @@ const PasteCodeEditor: React.FC = () => {
                   <TooltipProvider key={service.id}>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button 
-                          size="sm" 
-                          variant="ghost" 
+                        <Button
+                          size="sm"
+                          variant="ghost"
                           className="h-7 px-2"
                           onClick={() => handleAIPaste(service)}
                         >
-                          <span className="text-xs font-semibold">{service.name}</span>
+                          <span className="text-xs font-semibold">
+                            {service.name}
+                          </span>
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>
@@ -502,11 +518,13 @@ const PasteCodeEditor: React.FC = () => {
                     </Tooltip>
                   </TooltipProvider>
                 ))}
-                <Button 
-                  size="sm" 
-                  variant="ghost" 
+                <Button
+                  size="sm"
+                  variant="ghost"
                   className="h-7 px-2"
-                  onClick={() => copyToClipboard(code, "Code copied to clipboard!")}
+                  onClick={() =>
+                    copyToClipboard(code, "Code copied to clipboard!")
+                  }
                 >
                   <Copy size={14} className="mr-1" />
                   <span className="text-xs">Copy</span>
@@ -517,196 +535,214 @@ const PasteCodeEditor: React.FC = () => {
                 </Button>
               </div>
             </div>
-            <div className="min-h-[500px] max-h-[80vh] relative">
-              <CodeEditor
-                value={code}
-                language={language}
-                placeholder="Paste your code or start typing..."
-                onChange={(e) => setCode(e.target.value)}
-                padding={15}
-                style={{
-                  fontSize: "1rem",
-                  fontFamily: "'JetBrains Mono', monospace",
-                  backgroundColor: "#151520",
-                  minHeight: "500px",
-                  borderRadius: "0 0 0.5rem 0.5rem",
-                  height: "100%",
-                }}
-                className="min-h-[500px] w-full outline-none resize-none"
-                data-color-mode="dark"
-              />
+
+            <div className="flex min-h-[65vh] relative">
+              <div className="py-4 bg-[#181824] text-muted-foreground text-right select-none font-mono text-xs w-[3rem] overflow-y-hidden flex flex-col">
+                {code.split("\n").map((_, i) => (
+                  <div
+                    key={i}
+                    className="px-2 h-[1.5rem] flex items-center justify-end"
+                  >
+                    {i + 1}
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex-1 relative">
+                <CodeEditor
+                  value={code}
+                  language={language}
+                  placeholder="Paste your code or start typing..."
+                  onChange={(e) => setCode(e.target.value)}
+                  padding={15}
+                  style={{
+                    fontSize: "1rem",
+                    fontFamily: "'JetBrains Mono', monospace",
+                    backgroundColor: "#151520",
+                    height: "100%",
+                    borderRadius: "0",
+                    minHeight: "65vh",
+                    lineHeight: "1.5rem",
+                  }}
+                  className="w-full outline-none resize-none min-h-[65vh]"
+                  data-color-mode="dark"
+                />
+              </div>
             </div>
           </TabsContent>
-          
+
           <TabsContent value="preview" className="mt-0">
             <div className="code-header flex items-center justify-between p-2">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-mono">Preview</span>
               </div>
-              <Button 
-                size="sm" 
-                variant="ghost" 
+              <Button
+                size="sm"
+                variant="ghost"
                 className="h-7 px-2"
                 onClick={() => setActiveTab("editor")}
               >
                 <span className="text-xs">Edit</span>
               </Button>
             </div>
-            <div className="p-4 bg-[#151520] min-h-[500px] max-h-[80vh] overflow-auto">
-              <pre className="text-white font-mono text-sm">
-                <code>{code}</code>
+            <div className="p-4 bg-[#151520] min-h-[65vh] overflow-auto">
+              <pre className="text-white font-mono text-sm flex">
+                <div className="pr-4 text-right select-none text-muted-foreground w-10 flex flex-col">
+                  {code.split("\n").map((_, i) => (
+                    <div
+                      key={i}
+                      className="h-[1.5rem] flex items-center justify-end"
+                    >
+                      {i + 1}
+                    </div>
+                  ))}
+                </div>
+                <div className="pl-4 border-l border-muted-foreground/20 flex flex-col">
+                  {code.split("\n").map((line, i) => (
+                    <div key={i} className="h-[1.5rem] flex items-center">
+                      {line}
+                    </div>
+                  ))}
+                </div>
               </pre>
             </div>
           </TabsContent>
         </div>
-        
-        <div className="mt-6 grid md:grid-cols-3 gap-4">
-          <Card className="md:col-span-2">
-            <CardHeader className="pb-3">
+
+        <div className="grid md:grid-cols-2 gap-3">
+          <div className="bg-card rounded-lg border shadow-sm p-3">
+            <div className="mb-2 pb-2 border-b flex justify-between items-center">
               <h3 className="text-sm font-medium">Share Options</h3>
-            </CardHeader>
-            <CardContent>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(handleGenerateLink)} className="space-y-4">
-                  <div className="flex flex-col sm:flex-row gap-4">
+              {generatedLink && (
+                <div className="flex items-center ml-2">
+                  <div className="text-xs font-mono bg-secondary/50 px-2 py-1 rounded max-w-[280px] overflow-x-auto whitespace-nowrap mr-2">
+                    {generatedLink}
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 w-7 p-0 flex-shrink-0"
+                    onClick={() =>
+                      copyToClipboard(generatedLink, "Link copied!")
+                    }
+                  >
+                    <Copy size={13} />
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            <Form {...form}>
+              <form
+                onSubmit={form.handleSubmit(handleGenerateLink)}
+                className="flex flex-wrap items-center gap-3"
+              >
+                <div className="flex items-center gap-4 flex-1">
+                  <div className="flex items-center gap-2 bg-secondary/20 hover:bg-secondary/30 rounded-md p-1 pl-2 transition-colors">
                     <FormField
                       control={form.control}
                       name="expiration"
                       render={({ field }) => (
-                        <FormItem className="w-full sm:w-1/2">
-                          <FormLabel className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Clock size={16} />
-                            Expiration
-                          </FormLabel>
-                          <FormControl>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select expiration" />
+                        <FormItem className="w-auto flex-shrink-0">
+                          <div className="flex items-center">
+                            <Clock size={15} className="text-primary mr-1.5" />
+                            <Select
+                              onValueChange={field.onChange}
+                              defaultValue={field.value}
+                            >
+                              <SelectTrigger className="h-9 text-sm border-0 bg-transparent hover:bg-secondary/10 w-32 pl-0 rounded-none focus:ring-0 focus:ring-offset-0">
+                                <SelectValue placeholder="Expiration" />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectGroup>
-                                  <SelectItem value="1d">1 day</SelectItem>
-                                  <SelectItem value="2d">2 days</SelectItem>
-                                  <SelectItem value="3d">3 days</SelectItem>
-                                  <SelectItem value="7d">7 days</SelectItem>
-                                  <SelectItem value="30d" disabled>30 days (Premium)</SelectItem>
-                                  <SelectItem value="never" disabled>Never (Premium)</SelectItem>
-                                </SelectGroup>
+                                <SelectItem value="1d">1 day</SelectItem>
+                                <SelectItem value="2d">2 days</SelectItem>
+                                <SelectItem value="3d">3 days</SelectItem>
+                                <SelectItem value="7d">7 days</SelectItem>
+                                <SelectItem value="30d" disabled>
+                                  30 days (Premium)
+                                </SelectItem>
+                                <SelectItem value="never" disabled>
+                                  Never (Premium)
+                                </SelectItem>
                               </SelectContent>
                             </Select>
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="isPasswordProtected"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center space-x-3 space-y-0 w-full sm:w-1/2 mt-8">
-                          <FormControl>
-                            <Checkbox
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                              disabled={true}
-                            />
-                          </FormControl>
-                          <div className="space-y-1 leading-none">
-                            <FormLabel className="flex items-center gap-2 cursor-not-allowed text-muted-foreground">
-                              <Lock size={16} />
-                              Password protect (Premium)
-                            </FormLabel>
                           </div>
                         </FormItem>
                       )}
                     />
                   </div>
-                  
-                  <div className="flex justify-end">
-                    <Button 
-                      type="submit" 
-                      className="gap-2"
-                      disabled={isGeneratingLink || !code.trim()}
-                    >
-                      <LinkIcon size={16} />
-                      {isGeneratingLink ? "Generating..." : "Generate link"}
-                    </Button>
+
+                  <div className="flex items-center bg-secondary/20 hover:bg-secondary/30 rounded-md p-1 pl-2 transition-colors">
+                    <FormField
+                      control={form.control}
+                      name="isPasswordProtected"
+                      render={({ field }) => (
+                        <FormItem className="flex items-center gap-1.5 mt-0">
+                          <div className="flex items-center gap-1.5">
+                            <Lock size={15} className="text-primary" />
+                            <FormLabel className="text-sm cursor-not-allowed text-muted-foreground m-0">
+                              Password
+                            </FormLabel>
+                          </div>
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              disabled={true}
+                              className="h-4 w-4 ml-0.5 text-primary"
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
                   </div>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="pb-3">
-              <h3 className="text-sm font-medium">Stats</h3>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground flex items-center">
-                    <Eye size={14} className="mr-2" />
-                    Views
-                  </span>
-                  <span className="font-medium">{pasteStats.views}</span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground flex items-center">
-                    <FileText size={14} className="mr-2" />
-                    Language
-                  </span>
-                  <span className="font-medium">{languageOptions.find(l => l.value === language)?.label}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground flex items-center">
-                    <Clock size={14} className="mr-2" />
-                    Created
-                  </span>
-                  <span className="font-medium">Just now</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground flex items-center">
-                    <Share2 size={14} className="mr-2" />
-                    Total Shares
-                  </span>
-                  <span className="font-medium">4.7M+</span>
-                </div>
+
+                <Button
+                  type="submit"
+                  className="gap-1.5 bg-primary hover:bg-primary/90 text-sm h-9"
+                  size="sm"
+                  disabled={isGeneratingLink || !code.trim()}
+                >
+                  <LinkIcon size={15} />
+                  {isGeneratingLink ? "Generating..." : "Generate link"}
+                </Button>
+              </form>
+            </Form>
+          </div>
+
+          <div className="bg-card rounded-lg border shadow-sm p-3">
+            <h3 className="text-sm font-medium mb-2 pb-2 border-b">Stats</h3>
+            <div className="grid grid-cols-2 gap-x-8 gap-y-3">
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground flex items-center">
+                  <Eye size={15} className="mr-1.5" /> Views
+                </span>
+                <span className="text-sm font-medium">{pasteStats.views}</span>
               </div>
-            </CardContent>
-          </Card>
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground flex items-center">
+                  <FileText size={15} className="mr-1.5" /> Language
+                </span>
+                <span className="text-sm font-medium">
+                  {languageOptions.find((l) => l.value === language)?.label}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground flex items-center">
+                  <Clock size={15} className="mr-1.5" /> Created
+                </span>
+                <span className="text-sm font-medium">Just now</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground flex items-center">
+                  <Share2 size={15} className="mr-1.5" /> Shares
+                </span>
+                <span className="text-sm font-medium">4.7M+</span>
+              </div>
+            </div>
+          </div>
         </div>
-        
-        {generatedLink && (
-          <Card className="mt-4">
-            <CardHeader className="pb-3">
-              <h3 className="text-sm font-medium">Generated Link</h3>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col sm:flex-row items-center gap-4">
-                <div className="text-sm font-mono bg-secondary/50 p-2 rounded w-full overflow-x-auto whitespace-nowrap">
-                  {generatedLink}
-                </div>
-                <div className="flex gap-2 whitespace-nowrap">
-                  <Button 
-                    onClick={() => copyToClipboard(generatedLink, "Link copied to clipboard!")} 
-                    className="gap-2"
-                  >
-                    <Copy size={16} />
-                    Copy Link
-                  </Button>
-                  <Button 
-                    onClick={shareLink}
-                    variant="outline"
-                    className="gap-2"
-                  >
-                    <Share2 size={16} />
-                    Share
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
       </Tabs>
     </div>
   );
