@@ -109,6 +109,25 @@ const Greeting = ({ name }) => {
 
 export default Greeting;`,
 
+  tsx: `import React from 'react';
+
+interface GreetingProps {
+  name: string;
+}
+
+const Greeting: React.FC<GreetingProps> = ({ name }) => {
+  const message = \`Hello, \${name}!\`;
+  
+  return (
+    <div className="greeting">
+      <h1>{message}</h1>
+      <p>Welcome to our application.</p>
+    </div>
+  );
+};
+
+export default Greeting;`,
+
   css: `/* Modern card component */
 .card {
   border-radius: 8px;
@@ -302,6 +321,7 @@ const languageOptions = [
   { value: "typescript", label: "TypeScript" },
   { value: "python", label: "Python" },
   { value: "jsx", label: "React JSX" },
+  { value: "tsx", label: "React TSX" },
   { value: "css", label: "CSS" },
   { value: "html", label: "HTML" },
   { value: "json", label: "JSON" },
@@ -352,11 +372,66 @@ const validateCode = (
   try {
     switch (language) {
       case "javascript":
-      case "typescript":
-      case "jsx":
         // Basic JS validation by attempting to parse
         new Function(code);
         return { isValid: true };
+
+      case "typescript":
+        // For TypeScript, we can do a basic syntax check
+        // But we'll skip type-checking as it would require a full TS compiler
+        try {
+          new Function(code.replace(/:\s*\w+/g, "")); // Remove type annotations
+          return { isValid: true };
+        } catch (e) {
+          return {
+            isValid: false,
+            error: e instanceof Error ? e.message : "Invalid TypeScript syntax",
+          };
+        }
+
+      case "jsx":
+      case "tsx":
+        // For JSX/TSX, we need to handle the special syntax
+        // We'll do a basic check for balanced tags and other common issues
+        try {
+          // Check for balanced JSX tags (basic check)
+          const jsxTagsOpen = (code.match(/<[a-zA-Z][^<>]*>/g) || []).length;
+          const jsxTagsClose = (code.match(/<\/[a-zA-Z][^<>]*>/g) || []).length;
+
+          if (jsxTagsOpen !== jsxTagsClose) {
+            return { isValid: false, error: "Unbalanced JSX tags" };
+          }
+
+          // Remove JSX syntax and try to evaluate as regular JS
+          const jsxRemoved = code
+            .replace(/<[^>]*>/g, '"JSX_ELEMENT"') // Replace JSX tags with strings
+            .replace(/import\s+.*?from\s+['"].*?['"]/g, "") // Remove import statements
+            .replace(/export\s+default\s+/g, "") // Remove export default
+            .replace(/\/\/.*$/gm, "") // Remove single-line comments
+            .replace(/\/\*[\s\S]*?\*\//g, ""); // Remove multi-line comments
+
+          // Only try to parse if there's actual code left after removing JSX
+          if (jsxRemoved.trim().length > 0) {
+            try {
+              new Function(jsxRemoved);
+            } catch (error) {
+              // Even if this fails, JSX could still be valid, so we'll just warn
+              return {
+                isValid: true,
+                error:
+                  "JSX syntax looks valid, but there might be other issues",
+              };
+            }
+          }
+
+          return { isValid: true };
+        } catch (error) {
+          return {
+            isValid: false,
+            error:
+              error instanceof Error ? error.message : "Invalid JSX syntax",
+          };
+        }
 
       case "json":
         // JSON validation
