@@ -537,9 +537,12 @@ const PasteCodeEditor: React.FC = () => {
             </div>
 
             <div className="flex min-h-[65vh] relative">
-              <div className="py-4 pr-2 bg-[#181824] text-muted-foreground text-right select-none font-mono text-xs w-[3rem] overflow-y-hidden">
+              <div className="py-4 bg-[#181824] text-muted-foreground text-right select-none font-mono text-xs w-[3rem] overflow-y-hidden flex flex-col">
                 {code.split("\n").map((_, i) => (
-                  <div key={i} className="px-2">
+                  <div
+                    key={i}
+                    className="px-2 h-[1.5rem] flex items-center justify-end"
+                  >
                     {i + 1}
                   </div>
                 ))}
@@ -559,6 +562,7 @@ const PasteCodeEditor: React.FC = () => {
                     height: "100%",
                     borderRadius: "0",
                     minHeight: "65vh",
+                    lineHeight: "1.5rem",
                   }}
                   className="w-full outline-none resize-none min-h-[65vh]"
                   data-color-mode="dark"
@@ -583,13 +587,22 @@ const PasteCodeEditor: React.FC = () => {
             </div>
             <div className="p-4 bg-[#151520] min-h-[65vh] overflow-auto">
               <pre className="text-white font-mono text-sm flex">
-                <div className="pr-4 text-right select-none text-muted-foreground w-10">
+                <div className="pr-4 text-right select-none text-muted-foreground w-10 flex flex-col">
                   {code.split("\n").map((_, i) => (
-                    <div key={i}>{i + 1}</div>
+                    <div
+                      key={i}
+                      className="h-[1.5rem] flex items-center justify-end"
+                    >
+                      {i + 1}
+                    </div>
                   ))}
                 </div>
-                <div className="pl-4 border-l border-muted-foreground/20">
-                  {code}
+                <div className="pl-4 border-l border-muted-foreground/20 flex flex-col">
+                  {code.split("\n").map((line, i) => (
+                    <div key={i} className="h-[1.5rem] flex items-center">
+                      {line}
+                    </div>
+                  ))}
                 </div>
               </pre>
             </div>
