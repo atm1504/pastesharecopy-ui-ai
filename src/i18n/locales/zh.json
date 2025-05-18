@@ -107,6 +107,7 @@
     }
   },
   "stats": {
+    "title": "我们的数据影响力",
     "pastesCreated": "已创建片段",
     "dailyUsers": "日活跃用户",
     "languages": "语言",

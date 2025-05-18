@@ -107,6 +107,7 @@
     }
   },
   "stats": {
+    "title": "数字で見る私たちの影響力",
     "pastesCreated": "作成されたスニペット",
     "dailyUsers": "日次ユーザー",
     "languages": "言語",
