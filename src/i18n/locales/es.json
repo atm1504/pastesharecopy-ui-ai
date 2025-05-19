@@ -1,0 +1,142 @@
+{
+  "general": {
+    "appName": "PasteShareCopy",
+    "tagline": "Comparte Fragmentos de Código con Facilidad",
+    "404": "404",
+    "pageNotFound": "¡Ups! Página no encontrada",
+    "returnHome": "Volver al Inicio",
+    "github": "GitHub",
+    "language": "Idioma",
+    "toggleTheme": "Cambiar tema",
+    "close": "Cerrar"
+  },
+  "hero": {
+    "title": "Comparte Fragmentos de Código con Facilidad",
+    "description": "Crea, comparte y almacena tus fragmentos de código en segundos. Resaltado de sintaxis perfecto, con potentes funciones para hacer que compartir tu código sea sencillo."
+  },
+  "navigation": {
+    "home": "Inicio",
+    "features": "Características",
+    "pricing": "Precios",
+    "docs": "Documentación",
+    "login": "Iniciar Sesión",
+    "signup": "Registrarse",
+    "dashboard": "Panel",
+    "settings": "Configuración",
+    "products": "Producto",
+    "resources": "Recursos",
+    "company": "Empresa",
+    "about": "Acerca de",
+    "blog": "Blog",
+    "careers": "Carreras",
+    "contact": "Contacto",
+    "guides": "Guías",
+    "support": "Soporte",
+    "status": "Estado",
+    "integrations": "Integraciones",
+    "terms": "Términos",
+    "privacy": "Privacidad",
+    "cookies": "Cookies",
+    "copyright": "Todos los derechos reservados.",
+    "yourSharedLinks": "Tus Enlaces Compartidos",
+    "openLink": "Abrir enlace"
+  },
+  "actions": {
+    "startPasting": "Comenzar a Pegar",
+    "viewPlans": "Ver Planes",
+    "tryNow": "Probar Ahora",
+    "learnMore": "Saber Más",
+    "share": "Compartir",
+    "copy": "Copiar",
+    "download": "Descargar",
+    "save": "Guardar",
+    "edit": "Editar"
+  },
+  "editor": {
+    "language": "Idioma",
+    "languages": "Idiomas",
+    "theme": "Tema",
+    "fontSize": "Tamaño de Fuente",
+    "lineNumbers": "Números de Línea",
+    "indentation": "Indentación",
+    "tabSize": "Tamaño de Tabulación",
+    "wrapLines": "Ajustar Líneas",
+    "placeholder": "Pega tu código aquí...",
+    "preview": "Vista Previa",
+    "htmlPreview": "Vista Previa HTML (sanitizada)",
+    "shareOptions": "Opciones de Compartir",
+    "stats": "Estadísticas",
+    "justNow": "Ahora mismo",
+    "views": "4.7M+",
+    "errorRenderingMarkdown": "Error al renderizar Markdown:",
+    "errorRenderingCSS": "Error al renderizar CSS:",
+    "errorFormattingJSON": "Error al formatear JSON:",
+    "expiration": {
+      "1d": "1 día",
+      "2d": "2 días",
+      "3d": "3 días",
+      "7d": "7 días"
+    }
+  },
+  "features": {
+    "title": "Características Potentes",
+    "subtitle": "Todo lo que necesitas para compartir tus fragmentos de código de manera eficiente y segura. Hemos construido la herramienta perfecta para desarrolladores, por desarrolladores.",
+    "syntaxHighlighting": {
+      "title": "Resaltado de Sintaxis",
+      "description": "Formato de código hermoso con soporte para más de 100 lenguajes de programación."
+    },
+    "easySharing": {
+      "title": "Compartir Fácilmente",
+      "description": "Genera y comparte enlaces al instante con cualquiera, en cualquier lugar."
+    },
+    "flexibleExpiration": {
+      "title": "Expiración Flexible",
+      "description": "Establece que tu pegado expire después de un tiempo específico, desde 1 día hasta 1 año."
+    },
+    "passwordProtection": {
+      "title": "Protección con Contraseña",
+      "description": "Mantén tu código sensible seguro con protección opcional por contraseña."
+    },
+    "multipleThemes": {
+      "title": "Múltiples Temas",
+      "description": "Elige entre una variedad de temas para que tu código se vea perfecto."
+    },
+    "lightningFast": {
+      "title": "Ultra Rápido",
+      "description": "Nuestra plataforma optimizada asegura que tus pegado se carguen al instante, cada vez."
+    }
+  },
+  "stats": {
+    "title": "Nuestro Impacto en Números",
+    "pastesCreated": "Pegados Creados",
+    "dailyUsers": "Usuarios Diarios",
+    "languages": "Lenguajes",
+    "uptime": "Tiempo Activo",
+    "linksToday": "Enlaces Hoy",
+    "viewsToday": "Vistas Hoy",
+    "totalShares": "Compartidos Totales"
+  },
+  "pricing": {
+    "title": "Precios Simples y Transparentes"
+  },
+  "samples": {
+    "welcome": "Bienvenido a nuestra aplicación.",
+    "myWebsite": {
+      "title": "Mi Sitio Web",
+      "heading": "Bienvenido a Mi Sitio Web",
+      "nav": {
+        "home": "Inicio",
+        "about": "Acerca de",
+        "contact": "Contacto"
+      },
+      "content": "Esta es una página HTML de ejemplo."
+    },
+    "css": {
+      "boxElement": "Elemento Caja",
+      "textElement": "Elemento Texto",
+      "buttonElement": "Elemento Botón",
+      "cardHeader": "Encabezado de Tarjeta",
+      "cardContent": "El contenido de la tarjeta va aquí"
+    }
+  }
+}

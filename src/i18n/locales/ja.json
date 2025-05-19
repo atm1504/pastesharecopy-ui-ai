@@ -1,0 +1,142 @@
+{
+  "general": {
+    "appName": "PasteShareCopy",
+    "tagline": "コードスニペットを簡単に共有",
+    "404": "404",
+    "pageNotFound": "ページが見つかりません",
+    "returnHome": "ホームに戻る",
+    "github": "GitHub",
+    "language": "言語",
+    "toggleTheme": "テーマを切り替え",
+    "close": "閉じる"
+  },
+  "hero": {
+    "title": "コードスニペットを簡単に共有",
+    "description": "数秒でコードスニペットを作成、共有、保存。完璧なシンタックスハイライトと、コード共有を簡単にする強力な機能を備えています。"
+  },
+  "navigation": {
+    "home": "ホーム",
+    "features": "機能",
+    "pricing": "料金",
+    "docs": "ドキュメント",
+    "login": "ログイン",
+    "signup": "新規登録",
+    "dashboard": "ダッシュボード",
+    "settings": "設定",
+    "products": "製品",
+    "resources": "リソース",
+    "company": "会社",
+    "about": "会社概要",
+    "blog": "ブログ",
+    "careers": "採用情報",
+    "contact": "お問い合わせ",
+    "guides": "ガイド",
+    "support": "サポート",
+    "status": "ステータス",
+    "integrations": "連携",
+    "terms": "利用規約",
+    "privacy": "プライバシー",
+    "cookies": "Cookie",
+    "copyright": "All rights reserved.",
+    "yourSharedLinks": "共有リンク",
+    "openLink": "リンクを開く"
+  },
+  "actions": {
+    "startPasting": "貼り付けを開始",
+    "viewPlans": "プランを見る",
+    "tryNow": "今すぐ試す",
+    "learnMore": "詳細を見る",
+    "share": "共有",
+    "copy": "コピー",
+    "download": "ダウンロード",
+    "save": "保存",
+    "edit": "編集"
+  },
+  "editor": {
+    "language": "言語",
+    "languages": "言語",
+    "theme": "テーマ",
+    "fontSize": "フォントサイズ",
+    "lineNumbers": "行番号",
+    "indentation": "インデント",
+    "tabSize": "タブサイズ",
+    "wrapLines": "行の折り返し",
+    "placeholder": "コードをここに貼り付けてください...",
+    "preview": "プレビュー",
+    "htmlPreview": "HTMLプレビュー（サニタイズ済み）",
+    "shareOptions": "共有オプション",
+    "stats": "統計",
+    "justNow": "今",
+    "views": "4.7M+",
+    "errorRenderingMarkdown": "Markdownのレンダリングエラー：",
+    "errorRenderingCSS": "CSSのレンダリングエラー：",
+    "errorFormattingJSON": "JSONのフォーマットエラー：",
+    "expiration": {
+      "1d": "1日",
+      "2d": "2日",
+      "3d": "3日",
+      "7d": "7日"
+    }
+  },
+  "features": {
+    "title": "強力な機能",
+    "subtitle": "コードスニペットを効率的かつ安全に共有するために必要なすべての機能を提供します。開発者による、開発者のための完璧なツールを構築しました。",
+    "syntaxHighlighting": {
+      "title": "シンタックスハイライト",
+      "description": "100以上のプログラミング言語をサポートする美しいコードフォーマット。"
+    },
+    "easySharing": {
+      "title": "簡単な共有",
+      "description": "どこでも、誰とでも即座にリンクを生成して共有。"
+    },
+    "flexibleExpiration": {
+      "title": "柔軟な有効期限",
+      "description": "1日から1年まで、特定の時間後にスニペットが期限切れになるように設定。"
+    },
+    "passwordProtection": {
+      "title": "パスワード保護",
+      "description": "オプションのパスワード保護で機密コードを安全に保持。"
+    },
+    "multipleThemes": {
+      "title": "複数のテーマ",
+      "description": "コードを完璧に見せるための様々なテーマから選択。"
+    },
+    "lightningFast": {
+      "title": "超高速",
+      "description": "最適化されたプラットフォームにより、スニペットが毎回瞬時に読み込まれます。"
+    }
+  },
+  "stats": {
+    "title": "数字で見る私たちの影響力",
+    "pastesCreated": "作成されたスニペット",
+    "dailyUsers": "日次ユーザー",
+    "languages": "言語",
+    "uptime": "稼働時間",
+    "linksToday": "本日のリンク",
+    "viewsToday": "本日の閲覧数",
+    "totalShares": "総共有数"
+  },
+  "pricing": {
+    "title": "シンプルで透明な料金体系"
+  },
+  "samples": {
+    "welcome": "アプリケーションへようこそ。",
+    "myWebsite": {
+      "title": "マイウェブサイト",
+      "heading": "マイウェブサイトへようこそ",
+      "nav": {
+        "home": "ホーム",
+        "about": "会社概要",
+        "contact": "お問い合わせ"
+      },
+      "content": "これはサンプルのHTMLページです。"
+    },
+    "css": {
+      "boxElement": "ボックス要素",
+      "textElement": "テキスト要素",
+      "buttonElement": "ボタン要素",
+      "cardHeader": "カードヘッダー",
+      "cardContent": "カードの内容はここに表示されます"
+    }
+  }
+}

@@ -1,0 +1,142 @@
+{
+  "general": {
+    "appName": "PasteShareCopy",
+    "tagline": "Partagez vos Extraits de Code en Toute Simplicité",
+    "404": "404",
+    "pageNotFound": "Oups ! Page non trouvée",
+    "returnHome": "Retour à l'Accueil",
+    "github": "GitHub",
+    "language": "Langue",
+    "toggleTheme": "Changer le thème",
+    "close": "Fermer"
+  },
+  "hero": {
+    "title": "Partagez vos Extraits de Code en Toute Simplicité",
+    "description": "Créez, partagez et stockez vos extraits de code en quelques secondes. Mise en évidence de la syntaxe parfaite, avec des fonctionnalités puissantes pour rendre le partage de votre code facile."
+  },
+  "navigation": {
+    "home": "Accueil",
+    "features": "Fonctionnalités",
+    "pricing": "Tarifs",
+    "docs": "Documentation",
+    "login": "Connexion",
+    "signup": "S'inscrire",
+    "dashboard": "Tableau de Bord",
+    "settings": "Paramètres",
+    "products": "Produit",
+    "resources": "Ressources",
+    "company": "Entreprise",
+    "about": "À Propos",
+    "blog": "Blog",
+    "careers": "Carrières",
+    "contact": "Contact",
+    "guides": "Guides",
+    "support": "Support",
+    "status": "Statut",
+    "integrations": "Intégrations",
+    "terms": "Conditions",
+    "privacy": "Confidentialité",
+    "cookies": "Cookies",
+    "copyright": "Tous droits réservés.",
+    "yourSharedLinks": "Vos Liens Partagés",
+    "openLink": "Ouvrir le lien"
+  },
+  "actions": {
+    "startPasting": "Commencer à Coller",
+    "viewPlans": "Voir les Forfaits",
+    "tryNow": "Essayer Maintenant",
+    "learnMore": "En Savoir Plus",
+    "share": "Partager",
+    "copy": "Copier",
+    "download": "Télécharger",
+    "save": "Enregistrer",
+    "edit": "Modifier"
+  },
+  "editor": {
+    "language": "Langue",
+    "languages": "Langues",
+    "theme": "Thème",
+    "fontSize": "Taille de Police",
+    "lineNumbers": "Numéros de Ligne",
+    "indentation": "Indentation",
+    "tabSize": "Taille de Tabulation",
+    "wrapLines": "Retour à la Ligne",
+    "placeholder": "Collez votre code ici...",
+    "preview": "Aperçu",
+    "htmlPreview": "Aperçu HTML (nettoyé)",
+    "shareOptions": "Options de Partage",
+    "stats": "Statistiques",
+    "justNow": "À l'instant",
+    "views": "4.7M+",
+    "errorRenderingMarkdown": "Erreur lors du rendu Markdown :",
+    "errorRenderingCSS": "Erreur lors du rendu CSS :",
+    "errorFormattingJSON": "Erreur lors du formatage JSON :",
+    "expiration": {
+      "1d": "1 jour",
+      "2d": "2 jours",
+      "3d": "3 jours",
+      "7d": "7 jours"
+    }
+  },
+  "features": {
+    "title": "Fonctionnalités Puissantes",
+    "subtitle": "Tout ce dont vous avez besoin pour partager vos extraits de code efficacement et en toute sécurité. Nous avons construit l'outil parfait pour les développeurs, par des développeurs.",
+    "syntaxHighlighting": {
+      "title": "Mise en Évidence de la Syntaxe",
+      "description": "Formatage de code élégant avec prise en charge de plus de 100 langages de programmation."
+    },
+    "easySharing": {
+      "title": "Partage Facile",
+      "description": "Générez et partagez des liens instantanément avec n'importe qui, n'importe où."
+    },
+    "flexibleExpiration": {
+      "title": "Expiration Flexible",
+      "description": "Définissez l'expiration de votre collage après une durée spécifique, de 1 jour à 1 an."
+    },
+    "passwordProtection": {
+      "title": "Protection par Mot de Passe",
+      "description": "Gardez votre code sensible en sécurité avec une protection optionnelle par mot de passe."
+    },
+    "multipleThemes": {
+      "title": "Thèmes Multiples",
+      "description": "Choisissez parmi une variété de thèmes pour que votre code soit parfaitement présenté."
+    },
+    "lightningFast": {
+      "title": "Ultra Rapide",
+      "description": "Notre plateforme optimisée garantit que vos collages se chargent instantanément, à chaque fois."
+    }
+  },
+  "stats": {
+    "title": "Notre Impact en Chiffres",
+    "pastesCreated": "Collages Créés",
+    "dailyUsers": "Utilisateurs Quotidiens",
+    "languages": "Langages",
+    "uptime": "Disponibilité",
+    "linksToday": "Liens Aujourd'hui",
+    "viewsToday": "Vues Aujourd'hui",
+    "totalShares": "Partages Totaux"
+  },
+  "pricing": {
+    "title": "Tarification Simple et Transparente"
+  },
+  "samples": {
+    "welcome": "Bienvenue dans notre application.",
+    "myWebsite": {
+      "title": "Mon Site Web",
+      "heading": "Bienvenue sur Mon Site Web",
+      "nav": {
+        "home": "Accueil",
+        "about": "À Propos",
+        "contact": "Contact"
+      },
+      "content": "Ceci est une page HTML d'exemple."
+    },
+    "css": {
+      "boxElement": "Élément Boîte",
+      "textElement": "Élément Texte",
+      "buttonElement": "Élément Bouton",
+      "cardHeader": "En-tête de Carte",
+      "cardContent": "Le contenu de la carte va ici"
+    }
+  }
+}
