@@ -34,7 +34,6 @@ const HeroSection: React.FC = () => {
                 </Button>
               </div>
             </div>
-
             <div className="w-full max-w-3xl mt-16">
               <div className="rounded-lg overflow-hidden shadow-xl border border-border/50">
                 <img
@@ -42,6 +41,7 @@ const HeroSection: React.FC = () => {
                   alt={t("general.appName") + " " + t("general.tagline")}
                   className="w-full h-auto"
                 />
+
               </div>
             </div>
           </div>
