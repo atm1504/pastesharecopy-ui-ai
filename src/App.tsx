@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider, useTheme } from "@/hooks/useTheme";
 import { Toaster } from "@/components/ui/toaster";
@@ -12,11 +12,20 @@ import Pricing from "./pages/Pricing";
 import Login from "./pages/Login";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
+import { Loader2 } from "lucide-react";
 
-// Example of a protected dashboard route - you can create this page
-// const Dashboard = React.lazy(() => import("./pages/Dashboard"));
+// Lazy-loaded dashboard route
+const Dashboard = React.lazy(() => import("./pages/Dashboard"));
 
 const queryClient = new QueryClient();
+
+// Loading fallback for lazy-loaded components
+const LoadingFallback = () => (
+  <div className="flex h-screen w-full items-center justify-center">
+    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    <span className="ml-2 text-lg">Loading Dashboard...</span>
+  </div>
+);
 
 const App = () => {
   const { resolvedTheme } = useTheme();
@@ -44,20 +53,47 @@ const App = () => {
                 }`}
               >
                 <Routes>
+                  {/* Public routes */}
                   <Route path="/" element={<Index />} />
                   <Route path="/pricing" element={<Pricing />} />
                   <Route path="/login" element={<Login />} />
 
-                  {/* Protected routes example - uncomment and create the Dashboard component when ready */}
-                  {/* <Route 
-                    path="/dashboard" 
+                  {/* Protected routes */}
+                  <Route
+                    path="/dashboard"
                     element={
                       <ProtectedRoute>
-                        <Dashboard />
+                        <Suspense fallback={<LoadingFallback />}>
+                          <Dashboard />
+                        </Suspense>
                       </ProtectedRoute>
-                    } 
-                  /> */}
+                    }
+                  />
 
+                  {/* Dashboard sub-routes example */}
+                  <Route
+                    path="/dashboard/links"
+                    element={
+                      <ProtectedRoute>
+                        <Suspense fallback={<LoadingFallback />}>
+                          <Dashboard view="links" />
+                        </Suspense>
+                      </ProtectedRoute>
+                    }
+                  />
+
+                  <Route
+                    path="/dashboard/settings"
+                    element={
+                      <ProtectedRoute>
+                        <Suspense fallback={<LoadingFallback />}>
+                          <Dashboard view="settings" />
+                        </Suspense>
+                      </ProtectedRoute>
+                    }
+                  />
+
+                  {/* Fallback route */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </div>
