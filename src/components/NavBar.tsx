@@ -2,14 +2,17 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Link } from "react-router-dom";
-import { LogIn, Globe, Link as LinkIcon } from "lucide-react";
+import { LogIn, LogOut, Globe, Link as LinkIcon, User } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { useAuthContext } from "@/contexts/AuthContext";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface NavBarProps {
   onViewLinksClick?: () => void;
@@ -17,6 +20,7 @@ interface NavBarProps {
 
 const NavBar: React.FC<NavBarProps> = ({ onViewLinksClick }) => {
   const { t, i18n } = useTranslation();
+  const { user, loading, signOut } = useAuthContext();
 
   const languages = {
     en: "English",
@@ -29,6 +33,20 @@ const NavBar: React.FC<NavBarProps> = ({ onViewLinksClick }) => {
 
   const handleLanguageChange = (lang: string) => {
     i18n.changeLanguage(lang);
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+  };
+
+  const getUserInitials = () => {
+    if (!user || !user.displayName) return "U";
+    return user.displayName
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .substring(0, 2);
   };
 
   return (
@@ -104,12 +122,48 @@ const NavBar: React.FC<NavBarProps> = ({ onViewLinksClick }) => {
 
             <ThemeToggle />
 
-            <Button asChild variant="default" className="hidden md:flex">
-              <Link to="/login" className="flex items-center gap-1">
-                <LogIn className="h-4 w-4 mr-1" />
-                {t("navigation.login")}
-              </Link>
-            </Button>
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Avatar className="h-8 w-8 cursor-pointer">
+                    <AvatarImage
+                      src={user.photoURL || undefined}
+                      alt={user.displayName || "User"}
+                    />
+                    <AvatarFallback>{getUserInitials()}</AvatarFallback>
+                  </Avatar>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <div className="flex items-center justify-start gap-2 p-2">
+                    <div className="flex flex-col space-y-1 leading-none">
+                      {user.displayName && (
+                        <p className="font-medium">{user.displayName}</p>
+                      )}
+                      {user.email && (
+                        <p className="text-xs text-muted-foreground">
+                          {user.email}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={handleSignOut}
+                    className="text-destructive"
+                  >
+                    <LogOut className="h-4 w-4 mr-2" />
+                    {t("navigation.logout")}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button asChild variant="default" className="hidden md:flex">
+                <Link to="/login" className="flex items-center gap-1">
+                  <LogIn className="h-4 w-4 mr-1" />
+                  {t("navigation.login")}
+                </Link>
+              </Button>
+            )}
           </div>
         </div>
       </div>
