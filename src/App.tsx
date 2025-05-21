@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider, useTheme } from "@/hooks/useTheme";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -10,6 +10,11 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Pricing from "./pages/Pricing";
 import Login from "./pages/Login";
+import { AuthProvider } from "./contexts/AuthContext";
+import ProtectedRoute from "./components/ProtectedRoute";
+
+// Example of a protected dashboard route - you can create this page
+// const Dashboard = React.lazy(() => import("./pages/Dashboard"));
 
 const queryClient = new QueryClient();
 
@@ -24,28 +29,41 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="dark">
-        <TooltipProvider>
-          {/* Background is rendered outside of BrowserRouter to ensure it's always visible */}
-          <DynamicBackground />
+        <AuthProvider>
+          <TooltipProvider>
+            {/* Background is rendered outside of BrowserRouter to ensure it's always visible */}
+            <DynamicBackground />
 
-          <Toaster />
-          <Sonner />
+            <Toaster />
+            <Sonner />
 
-          <BrowserRouter>
-            <div
-              className={`min-h-screen font-sans antialiased relative ${
-                isDarkMode ? "bg-background/70" : "bg-background/60"
-              }`}
-            >
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/pricing" element={<Pricing />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </div>
-          </BrowserRouter>
-        </TooltipProvider>
+            <BrowserRouter>
+              <div
+                className={`min-h-screen font-sans antialiased relative ${
+                  isDarkMode ? "bg-background/70" : "bg-background/60"
+                }`}
+              >
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/pricing" element={<Pricing />} />
+                  <Route path="/login" element={<Login />} />
+
+                  {/* Protected routes example - uncomment and create the Dashboard component when ready */}
+                  {/* <Route 
+                    path="/dashboard" 
+                    element={
+                      <ProtectedRoute>
+                        <Dashboard />
+                      </ProtectedRoute>
+                    } 
+                  /> */}
+
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </div>
+            </BrowserRouter>
+          </TooltipProvider>
+        </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );
