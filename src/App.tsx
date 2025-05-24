@@ -10,6 +10,8 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Pricing from "./pages/Pricing";
 import Login from "./pages/Login";
+import Premium from "./pages/Premium";
+import SnippetView from "./pages/SnippetView";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { Loader2 } from "lucide-react";
@@ -57,6 +59,10 @@ const App = () => {
                   <Route path="/" element={<Index />} />
                   <Route path="/pricing" element={<Pricing />} />
                   <Route path="/login" element={<Login />} />
+                  <Route path="/premium" element={<Premium />} />
+
+                  {/* Snippet view route - handles short URLs */}
+                  <Route path="/:shortUrl" element={<SnippetView />} />
 
                   {/* Protected routes */}
                   <Route
