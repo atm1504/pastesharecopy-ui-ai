@@ -1,7 +1,7 @@
 import { httpsCallable } from "firebase/functions";
+import { getAuth } from "firebase/auth";
 import { functions } from "./firebase";
 import { getDeviceId } from "./deviceId";
-import { getFunctions } from "firebase/functions";
 
 // Types
 export interface CreateSnippetRequest {
@@ -366,48 +366,27 @@ export const getDailyUsage = async (): Promise<DailyUsageResponse> => {
 
 export const updateSnippet = async (data: UpdateSnippetRequest) => {
   try {
-    const auth = getAuth();
-    const user = auth.currentUser;
-    
-    if (!user) {
-      throw new Error("You must be signed in to edit snippets");
-    }
+    const updateSnippetFn = httpsCallable(functions, "update_snippet");
 
-    const idToken = await user.getIdToken();
-    
-    const response = await fetch("/api/update_snippet", {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${idToken}`
-      },
-      body: JSON.stringify({
-        data: data // Firebase Functions expects data in { data: ... } format
-      })
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      // Handle Firebase Functions error format
-      if (errorData.error && errorData.error.status) {
-        switch (errorData.error.status) {
-          case 'UNAUTHENTICATED':
-            throw new Error("You must be signed in to edit snippets");
-          case 'PERMISSION_DENIED':
-            throw new Error("You can only edit your own snippets");
-          case 'NOT_FOUND':
-            throw new Error("Snippet not found");
-          default:
-            throw new Error(errorData.error.message || "Failed to update snippet");
-        }
-      }
-      throw new Error("Failed to update snippet");
-    }
-
-    const result = await response.json();
-    return result.result as { success: boolean; message: string }; // Firebase wraps response in result field
-  } catch (error) {
+    const result = await updateSnippetFn(data);
+    return result.data as { success: boolean; message: string };
+  } catch (error: unknown) {
     console.error("Error updating snippet:", error);
-    throw error instanceof Error ? error : new Error("Failed to update snippet");
+
+    if (isFirebaseError(error)) {
+      if (error.code === "functions/unauthenticated") {
+        throw new Error("You must be signed in to edit snippets");
+      } else if (error.code === "functions/permission-denied") {
+        throw new Error("You can only edit your own snippets");
+      } else if (error.code === "functions/not-found") {
+        throw new Error("Snippet not found");
+      } else if (error.code === "functions/invalid-argument") {
+        throw new Error("Invalid snippet data provided.");
+      }
+    }
+
+    const errorMessage =
+      error instanceof Error ? error.message : "Failed to update snippet";
+    throw new Error(errorMessage);
   }
 };
