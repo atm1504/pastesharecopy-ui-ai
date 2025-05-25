@@ -2,6 +2,7 @@ import { httpsCallable } from "firebase/functions";
 import { getAuth } from "firebase/auth";
 import { functions } from "./firebase";
 import { getDeviceId } from "./deviceId";
+import { getFunctions } from "firebase/functions";
 
 // Types
 export interface CreateSnippetRequest {
@@ -37,6 +38,13 @@ export interface GetSnippetResponse {
     isConfidential: boolean;
     createdBy: string;
   };
+}
+
+export interface UpdateSnippetRequest {
+  snippetId: string;
+  code: string;
+  language?: string;
+  title?: string;
 }
 
 // Type for Firebase function errors
@@ -375,5 +383,53 @@ export const getDailyUsage = async (): Promise<DailyUsageResponse> => {
     const errorMessage =
       error instanceof Error ? error.message : "Failed to retrieve daily usage";
     throw new Error(errorMessage);
+  }
+};
+
+export const updateSnippet = async (data: UpdateSnippetRequest) => {
+  try {
+    const auth = getAuth();
+    const user = auth.currentUser;
+    
+    if (!user) {
+      throw new Error("You must be signed in to edit snippets");
+    }
+
+    const idToken = await user.getIdToken();
+    
+    const response = await fetch("/api/update_snippet", {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${idToken}`
+      },
+      body: JSON.stringify({
+        data: data // Firebase Functions expects data in { data: ... } format
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      // Handle Firebase Functions error format
+      if (errorData.error && errorData.error.status) {
+        switch (errorData.error.status) {
+          case 'UNAUTHENTICATED':
+            throw new Error("You must be signed in to edit snippets");
+          case 'PERMISSION_DENIED':
+            throw new Error("You can only edit your own snippets");
+          case 'NOT_FOUND':
+            throw new Error("Snippet not found");
+          default:
+            throw new Error(errorData.error.message || "Failed to update snippet");
+        }
+      }
+      throw new Error("Failed to update snippet");
+    }
+
+    const result = await response.json();
+    return result.result as { success: boolean; message: string }; // Firebase wraps response in result field
+  } catch (error) {
+    console.error("Error updating snippet:", error);
+    throw error instanceof Error ? error : new Error("Failed to update snippet");
   }
 };

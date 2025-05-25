@@ -32,6 +32,7 @@ import {
   ExternalLink,
   Eye,
   FileText,
+  Save,
 } from "lucide-react";
 import {
   Tooltip,
@@ -55,8 +56,10 @@ import hljs from "highlight.js";
 import "highlight.js/styles/atom-one-dark.css";
 import { useTheme } from "@/hooks/useTheme";
 import { useTranslation } from "react-i18next";
-import { createSnippet, CreateSnippetRequest } from "@/lib/api";
+import { createSnippet, CreateSnippetRequest, updateSnippet, getSnippet } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
+import { LanguageSelect } from "@/components/LanguageSelect";
+import { useLocation } from "react-router-dom";
 
 // Import light theme for hljs
 import "highlight.js/styles/github.css";
@@ -776,6 +779,8 @@ const PasteCodeEditor: React.FC = () => {
   const [isGeneratingLink, setIsGeneratingLink] = useState<boolean>(false);
   const [generatedLink, setGeneratedLink] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>("editor");
+  const [isEditing, setIsEditing] = useState<boolean>(false);
+  const [snippetId, setSnippetId] = useState<string | null>(null);
   const [validation, setValidation] = useState<{
     isValid: boolean;
     error?: string;
@@ -788,6 +793,7 @@ const PasteCodeEditor: React.FC = () => {
   const { toast } = useToast();
   const { t } = useTranslation();
   const { profile, user } = useAuth();
+  const location = useLocation();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -832,6 +838,19 @@ const PasteCodeEditor: React.FC = () => {
     }
   }, [profile]);
 
+  // Handle edit mode from snippet view
+  useEffect(() => {
+    const state = location.state as { editMode: boolean; snippetId: string; code: string; language: string } | null;
+    if (state?.editMode) {
+      setIsEditing(true);
+      setSnippetId(state.snippetId);
+      setCode(state.code);
+      setLanguage(state.language);
+      // Clear the location state to avoid re-applying on refresh
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
+
   const handleLanguageChange = (value: string) => {
     setLanguage(value);
   };
@@ -863,8 +882,11 @@ const PasteCodeEditor: React.FC = () => {
       };
 
       const result = await createSnippet(snippetData);
-
-      setGeneratedLink(result.fullUrl);
+      
+      // Get the base URL from the current window location
+      const baseUrl = window.location.origin;
+      const fullUrl = `${baseUrl}/${result.shortUrl}`;
+      setGeneratedLink(fullUrl);
       setRemainingLinks(result.remainingLinks);
 
       toast({
@@ -987,352 +1009,438 @@ const PasteCodeEditor: React.FC = () => {
     }
   };
 
+  // Function to handle snippet updates
+  const handleUpdateSnippet = async () => {
+    if (!snippetId || !code.trim() || !user) {
+      return;
+    }
+
+    try {
+      const result = await updateSnippet({
+        snippetId,
+        code,
+        language,
+      });
+
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: "Snippet updated successfully",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error updating snippet",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Function to load a snippet for editing
+  const loadSnippetForEdit = async (shortUrl: string) => {
+    try {
+      const result = await getSnippet(shortUrl);
+      if (result.success) {
+        setCode(result.snippet.content);
+        setLanguage(result.snippet.language);
+        setSnippetId(result.snippet.id);
+        setIsEditing(true);
+      }
+    } catch (error) {
+      toast({
+        title: "Error loading snippet",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Check if current user can edit
+  const canEdit = user && snippetId;
+
   return (
-    <div className="w-full mx-auto">
-      <Tabs
-        defaultValue="editor"
-        className="w-full"
-        value={activeTab}
-        onValueChange={setActiveTab}
-      >
-        <div className="flex items-center justify-between mb-1">
-          <TabsList className="h-10">
-            <TabsTrigger value="editor" className="text-sm">
-              Editor
-            </TabsTrigger>
-            <TabsTrigger value="preview" className="text-sm">
-              Preview
-            </TabsTrigger>
-          </TabsList>
+    <div className="space-y-4">
+      <div className="w-full mx-auto">
+        <Tabs
+          defaultValue="editor"
+          className="w-full"
+          value={activeTab}
+          onValueChange={setActiveTab}
+        >
+          <div className="flex items-center justify-between mb-1">
+            <TabsList className="h-10">
+              <TabsTrigger value="editor" className="text-sm">
+                Editor
+              </TabsTrigger>
+              <TabsTrigger value="preview" className="text-sm">
+                Preview
+              </TabsTrigger>
+            </TabsList>
 
-          <h1 className="text-xl font-bold text-center bg-gradient-to-r from-primary via-indigo-400 to-purple-500 bg-clip-text text-transparent drop-shadow-md">
-            Start Sharing Your Code
-          </h1>
+            <h1 className="text-xl font-bold text-center bg-gradient-to-r from-primary via-indigo-400 to-purple-500 bg-clip-text text-transparent drop-shadow-md">
+              Start Sharing Your Code
+            </h1>
 
-          <Select value={language} onValueChange={handleLanguageChange}>
-            <SelectTrigger className="w-40 h-10">
-              <SelectValue placeholder="Language" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                <SelectLabel>Languages</SelectLabel>
-                {languageOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="bg-card border rounded-lg shadow-sm overflow-hidden mb-2">
-          <TabsContent value="editor" className="mt-0">
-            <div className="h-[71vh] flex flex-col">
-              <div className="code-header flex items-center justify-between p-2 border-b">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-mono">{language}</span>
-                  {/* Show validation status */}
-                  {code.trim() && (
-                    <span
-                      className={`text-xs px-2 py-0.5 rounded ${
-                        validation.isValid
-                          ? "bg-green-500/20 text-green-400"
-                          : "bg-red-500/20 text-red-400"
-                      }`}
-                    >
-                      {validation.isValid ? "Valid" : "Invalid"}
-                    </span>
-                  )}
-                  {!validation.isValid && (
-                    <span className="text-xs text-red-400">
-                      {validation.error}
-                    </span>
-                  )}
-                </div>
-                <div className="flex gap-1">
-                  {aiServices.map((service) => (
-                    <TooltipProvider key={service.id}>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-7 px-2"
-                            onClick={() => handleAIPaste(service)}
-                          >
-                            <span className="text-xs font-semibold">
-                              {service.name}
-                            </span>
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Copy & open in {service.name}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+            <Select value={language} onValueChange={handleLanguageChange}>
+              <SelectTrigger className="w-40 h-10">
+                <SelectValue placeholder="Language" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectLabel>Languages</SelectLabel>
+                  {languageOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
                   ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="bg-card border rounded-lg shadow-sm overflow-hidden mb-2">
+            <TabsContent value="editor" className="mt-0">
+              <div className="h-[71vh] flex flex-col">
+                <div className="code-header flex items-center justify-between p-2 border-b">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-mono">{language}</span>
+                    {/* Show validation status */}
+                    {code.trim() && (
+                      <span
+                        className={`text-xs px-2 py-0.5 rounded ${
+                          validation.isValid
+                            ? "bg-green-500/20 text-green-400"
+                            : "bg-red-500/20 text-red-400"
+                        }`}
+                      >
+                        {validation.isValid ? "Valid" : "Invalid"}
+                      </span>
+                    )}
+                    {!validation.isValid && (
+                      <span className="text-xs text-red-400">
+                        {validation.error}
+                      </span>
+                    )}
+                    {isEditing && (
+                      <Button
+                        onClick={handleUpdateSnippet}
+                        disabled={!canEdit}
+                        variant="outline"
+                        className="gap-2 ml-2"
+                        size="sm"
+                      >
+                        <Save className="h-4 w-4" />
+                        Save Changes
+                      </Button>
+                    )}
+                    {!user && isEditing && (
+                      <div className="text-sm text-muted-foreground ml-2">
+                        Sign in to edit this snippet
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex gap-1">
+                    {aiServices.map((service) => (
+                      <TooltipProvider key={service.id}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 px-2"
+                              onClick={() => handleAIPaste(service)}
+                            >
+                              <span className="text-xs font-semibold">
+                                {service.name}
+                              </span>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Copy & open in {service.name}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    ))}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 px-2"
+                      onClick={() =>
+                        copyToClipboard(code, "Code copied to clipboard!")
+                      }
+                    >
+                      <Copy size={14} className="mr-1" />
+                      <span className="text-xs">Copy</span>
+                    </Button>
+                    <Button size="sm" variant="ghost" className="h-7 px-2">
+                      <Download size={14} className="mr-1" />
+                      <span className="text-xs">Download</span>
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="flex flex-1 relative">
+                  <div
+                    className={`py-4 text-muted-foreground text-right select-none font-mono text-xs w-[3.5rem] overflow-y-hidden flex flex-col ${
+                      isDarkMode ? "bg-[#181824]" : "bg-gray-100"
+                    }`}
+                  >
+                    {code.split("\n").map((_, i) => (
+                      <div
+                        key={i}
+                        className="px-2 h-[1.5rem] flex items-center justify-end"
+                        style={{ lineHeight: "1.5rem" }}
+                      >
+                        {i + 1}
+                      </div>
+                    ))}
+                  </div>
+
+                  <div
+                    className={`flex-1 relative ${
+                      !isDarkMode ? "border-l border-gray-200" : ""
+                    }`}
+                  >
+                    <CodeEditor
+                      value={code}
+                      language={language}
+                      placeholder="Paste your code or start typing..."
+                      onChange={handleCodeChange}
+                      padding={15}
+                      style={{
+                        fontSize: "1rem",
+                        fontFamily: "'JetBrains Mono', monospace",
+                        backgroundColor: isDarkMode ? "#151520" : "#fcfcfc",
+                        color: isDarkMode ? "#ffffff" : "#333333",
+                        height: "100%",
+                        borderRadius: "0",
+                        lineHeight: "1.5rem",
+                      }}
+                      className="w-full outline-none resize-none h-full"
+                      data-color-mode={isDarkMode ? "dark" : "light"}
+                    />
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="preview" className="mt-0">
+              <div className="h-[71vh] flex flex-col">
+                <div className="code-header flex items-center justify-between p-2 border-b">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-mono">Preview</span>
+                    <span className="text-xs text-muted-foreground">
+                      {language === "markdown"
+                        ? "Rendered Markdown"
+                        : language === "html"
+                        ? "Rendered HTML"
+                        : language === "css"
+                        ? "Styled Elements"
+                        : language === "json"
+                        ? "Formatted JSON"
+                        : "Syntax Highlighted"}
+                    </span>
+                  </div>
                   <Button
                     size="sm"
                     variant="ghost"
                     className="h-7 px-2"
-                    onClick={() =>
-                      copyToClipboard(code, "Code copied to clipboard!")
-                    }
+                    onClick={() => setActiveTab("editor")}
                   >
-                    <Copy size={14} className="mr-1" />
-                    <span className="text-xs">Copy</span>
-                  </Button>
-                  <Button size="sm" variant="ghost" className="h-7 px-2">
-                    <Download size={14} className="mr-1" />
-                    <span className="text-xs">Download</span>
+                    <span className="text-xs">Edit</span>
                   </Button>
                 </div>
-              </div>
-
-              <div className="flex flex-1 relative">
                 <div
-                  className={`py-4 text-muted-foreground text-right select-none font-mono text-xs w-[3.5rem] overflow-y-hidden flex flex-col ${
-                    isDarkMode ? "bg-[#181824]" : "bg-gray-100"
-                  }`}
+                  style={{
+                    backgroundColor: isDarkMode ? "#151520" : "#fcfcfc",
+                    boxShadow: isDarkMode
+                      ? "none"
+                      : "inset 0 1px 2px rgba(0,0,0,0.05)",
+                    flex: 1,
+                  }}
+                  className="p-4 overflow-auto"
                 >
-                  {code.split("\n").map((_, i) => (
-                    <div
-                      key={i}
-                      className="px-2 h-[1.5rem] flex items-center justify-end"
-                      style={{ lineHeight: "1.5rem" }}
+                  {/* Language-specific preview */}
+                  {renderPreview(code, language, validation, isDarkMode)}
+                </div>
+              </div>
+            </TabsContent>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-3">
+            <div className="bg-card rounded-lg border shadow-sm p-4">
+              <div className="mb-2 pb-2 border-b flex justify-between items-center">
+                <h3 className="text-sm font-semibold">
+                  {t("editor.shareOptions")}
+                </h3>
+                {generatedLink && (
+                  <div className="flex items-center ml-2">
+                    <a 
+                      href={generatedLink}
+                      target="_blank"
+                      rel="noopener noreferrer" 
+                      className="text-xs font-mono bg-secondary/50 px-2 py-1 rounded max-w-[280px] overflow-x-auto whitespace-nowrap mr-2 hover:bg-secondary/70 transition-colors"
                     >
-                      {i + 1}
-                    </div>
-                  ))}
-                </div>
-
-                <div
-                  className={`flex-1 relative ${
-                    !isDarkMode ? "border-l border-gray-200" : ""
-                  }`}
-                >
-                  <CodeEditor
-                    value={code}
-                    language={language}
-                    placeholder="Paste your code or start typing..."
-                    onChange={handleCodeChange}
-                    padding={15}
-                    style={{
-                      fontSize: "1rem",
-                      fontFamily: "'JetBrains Mono', monospace",
-                      backgroundColor: isDarkMode ? "#151520" : "#fcfcfc",
-                      color: isDarkMode ? "#ffffff" : "#333333",
-                      height: "100%",
-                      borderRadius: "0",
-                      lineHeight: "1.5rem",
-                    }}
-                    className="w-full outline-none resize-none h-full"
-                    data-color-mode={isDarkMode ? "dark" : "light"}
-                  />
-                </div>
+                      {generatedLink}
+                    </a>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 w-7 p-0 flex-shrink-0"
+                      onClick={() =>
+                        copyToClipboard(generatedLink, t("actions.copy"))
+                      }
+                    >
+                      <Copy size={13} />
+                    </Button>
+                    {!user && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 ml-1 flex-shrink-0"
+                        disabled
+                        title="Sign in to edit this snippet"
+                      >
+                        <Save size={13} className="mr-1" />
+                        Edit
+                      </Button>
+                    )}
+                  </div>
+                )}
               </div>
-            </div>
-          </TabsContent>
 
-          <TabsContent value="preview" className="mt-0">
-            <div className="h-[71vh] flex flex-col">
-              <div className="code-header flex items-center justify-between p-2 border-b">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-mono">Preview</span>
-                  <span className="text-xs text-muted-foreground">
-                    {language === "markdown"
-                      ? "Rendered Markdown"
-                      : language === "html"
-                      ? "Rendered HTML"
-                      : language === "css"
-                      ? "Styled Elements"
-                      : language === "json"
-                      ? "Formatted JSON"
-                      : "Syntax Highlighted"}
+              <Form {...form}>
+                <form
+                  onSubmit={form.handleSubmit(handleGenerateLink)}
+                  className="flex flex-wrap items-center gap-3"
+                >
+                  <div className="flex items-center gap-4 flex-1">
+                    <div className="flex items-center gap-2 bg-secondary/20 hover:bg-secondary/30 rounded-md p-1 pl-2 transition-colors">
+                      <FormField
+                        control={form.control}
+                        name="expiration"
+                        render={({ field }) => (
+                          <FormItem className="w-auto flex-shrink-0">
+                            <div className="flex items-center">
+                              <Clock size={15} className="text-primary mr-1.5" />
+                              <Select
+                                onValueChange={field.onChange}
+                                defaultValue={field.value}
+                              >
+                                <SelectTrigger className="h-9 text-sm border-0 bg-transparent hover:bg-secondary/10 w-32 pl-0 rounded-none focus:ring-0 focus:ring-offset-0">
+                                  <SelectValue
+                                    placeholder={t("editor.expiration.1d")}
+                                  />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="1d">
+                                    {t("editor.expiration.1d")}
+                                  </SelectItem>
+                                  <SelectItem value="2d">
+                                    {t("editor.expiration.2d")}
+                                  </SelectItem>
+                                  <SelectItem value="3d">
+                                    {t("editor.expiration.3d")}
+                                  </SelectItem>
+                                  <SelectItem value="7d">
+                                    {t("editor.expiration.7d")}
+                                  </SelectItem>
+                                  <SelectItem value="30d" disabled>
+                                    30 days (Premium)
+                                  </SelectItem>
+                                  <SelectItem value="never" disabled>
+                                    Never (Premium)
+                                  </SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <div className="flex items-center bg-secondary/20 hover:bg-secondary/30 rounded-md p-1 pl-2 transition-colors">
+                      <FormField
+                        control={form.control}
+                        name="isPasswordProtected"
+                        render={({ field }) => (
+                          <FormItem className="flex items-center gap-1.5 mt-0">
+                            <div className="flex items-center gap-1.5">
+                              <Lock size={15} className="text-primary" />
+                              <FormLabel className="text-sm cursor-not-allowed text-muted-foreground m-0">
+                                {t("editor.password", "Password")}
+                              </FormLabel>
+                            </div>
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                                disabled={true}
+                                className="h-4 w-4 ml-0.5 text-primary"
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+
+                  <Button
+                    type="submit"
+                    className="gap-1.5 bg-primary hover:bg-primary/90 text-sm h-9"
+                    size="sm"
+                    disabled={isGeneratingLink || !code.trim()}
+                  >
+                    <LinkIcon size={15} />
+                    {isGeneratingLink
+                      ? t("actions.generating", "Generating...")
+                      : t("actions.generateLink", "Generate link")}
+                  </Button>
+                </form>
+              </Form>
+            </div>
+
+            <div className="bg-card rounded-lg border shadow-sm p-4">
+              <h3 className="text-sm font-semibold mb-2 pb-2 border-b">
+                {t("editor.stats")}
+              </h3>
+              <div className="grid grid-cols-2 gap-x-8 gap-y-3">
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground flex items-center">
+                    <Eye size={15} className="mr-1.5" /> {t("editor.views")}
+                  </span>
+                  <span className="text-sm font-medium">{pasteStats.views}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground flex items-center">
+                    <FileText size={15} className="mr-1.5" />{" "}
+                    {t("general.language")}
+                  </span>
+                  <span className="text-sm font-medium">
+                    {languageOptions.find((l) => l.value === language)?.label}
                   </span>
                 </div>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-7 px-2"
-                  onClick={() => setActiveTab("editor")}
-                >
-                  <span className="text-xs">Edit</span>
-                </Button>
-              </div>
-              <div
-                style={{
-                  backgroundColor: isDarkMode ? "#151520" : "#fcfcfc",
-                  boxShadow: isDarkMode
-                    ? "none"
-                    : "inset 0 1px 2px rgba(0,0,0,0.05)",
-                  flex: 1,
-                }}
-                className="p-4 overflow-auto"
-              >
-                {/* Language-specific preview */}
-                {renderPreview(code, language, validation, isDarkMode)}
-              </div>
-            </div>
-          </TabsContent>
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-3">
-          <div className="bg-card rounded-lg border shadow-sm p-4">
-            <div className="mb-2 pb-2 border-b flex justify-between items-center">
-              <h3 className="text-sm font-semibold">
-                {t("editor.shareOptions")}
-              </h3>
-              {generatedLink && (
-                <div className="flex items-center ml-2">
-                  <div className="text-xs font-mono bg-secondary/50 px-2 py-1 rounded max-w-[280px] overflow-x-auto whitespace-nowrap mr-2">
-                    {generatedLink}
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-7 w-7 p-0 flex-shrink-0"
-                    onClick={() =>
-                      copyToClipboard(generatedLink, t("actions.copy"))
-                    }
-                  >
-                    <Copy size={13} />
-                  </Button>
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground flex items-center">
+                    <Clock size={15} className="mr-1.5" /> {t("editor.justNow")}
+                  </span>
+                  <span className="text-sm font-medium">
+                    {t("editor.justNow")}
+                  </span>
                 </div>
-              )}
-            </div>
-
-            <Form {...form}>
-              <form
-                onSubmit={form.handleSubmit(handleGenerateLink)}
-                className="flex flex-wrap items-center gap-3"
-              >
-                <div className="flex items-center gap-4 flex-1">
-                  <div className="flex items-center gap-2 bg-secondary/20 hover:bg-secondary/30 rounded-md p-1 pl-2 transition-colors">
-                    <FormField
-                      control={form.control}
-                      name="expiration"
-                      render={({ field }) => (
-                        <FormItem className="w-auto flex-shrink-0">
-                          <div className="flex items-center">
-                            <Clock size={15} className="text-primary mr-1.5" />
-                            <Select
-                              onValueChange={field.onChange}
-                              defaultValue={field.value}
-                            >
-                              <SelectTrigger className="h-9 text-sm border-0 bg-transparent hover:bg-secondary/10 w-32 pl-0 rounded-none focus:ring-0 focus:ring-offset-0">
-                                <SelectValue
-                                  placeholder={t("editor.expiration.1d")}
-                                />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="1d">
-                                  {t("editor.expiration.1d")}
-                                </SelectItem>
-                                <SelectItem value="2d">
-                                  {t("editor.expiration.2d")}
-                                </SelectItem>
-                                <SelectItem value="3d">
-                                  {t("editor.expiration.3d")}
-                                </SelectItem>
-                                <SelectItem value="7d">
-                                  {t("editor.expiration.7d")}
-                                </SelectItem>
-                                <SelectItem value="30d" disabled>
-                                  30 days (Premium)
-                                </SelectItem>
-                                <SelectItem value="never" disabled>
-                                  Never (Premium)
-                                </SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <div className="flex items-center bg-secondary/20 hover:bg-secondary/30 rounded-md p-1 pl-2 transition-colors">
-                    <FormField
-                      control={form.control}
-                      name="isPasswordProtected"
-                      render={({ field }) => (
-                        <FormItem className="flex items-center gap-1.5 mt-0">
-                          <div className="flex items-center gap-1.5">
-                            <Lock size={15} className="text-primary" />
-                            <FormLabel className="text-sm cursor-not-allowed text-muted-foreground m-0">
-                              {t("editor.password", "Password")}
-                            </FormLabel>
-                          </div>
-                          <FormControl>
-                            <Checkbox
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                              disabled={true}
-                              className="h-4 w-4 ml-0.5 text-primary"
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                  </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground flex items-center">
+                    <Share2 size={15} className="mr-1.5" />{" "}
+                    {t("editor.shares", "Shares")}
+                  </span>
+                  <span className="text-sm font-medium">4.7M+</span>
                 </div>
-
-                <Button
-                  type="submit"
-                  className="gap-1.5 bg-primary hover:bg-primary/90 text-sm h-9"
-                  size="sm"
-                  disabled={isGeneratingLink || !code.trim()}
-                >
-                  <LinkIcon size={15} />
-                  {isGeneratingLink
-                    ? t("actions.generating", "Generating...")
-                    : t("actions.generateLink", "Generate link")}
-                </Button>
-              </form>
-            </Form>
-          </div>
-
-          <div className="bg-card rounded-lg border shadow-sm p-4">
-            <h3 className="text-sm font-semibold mb-2 pb-2 border-b">
-              {t("editor.stats")}
-            </h3>
-            <div className="grid grid-cols-2 gap-x-8 gap-y-3">
-              <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground flex items-center">
-                  <Eye size={15} className="mr-1.5" /> {t("editor.views")}
-                </span>
-                <span className="text-sm font-medium">{pasteStats.views}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground flex items-center">
-                  <FileText size={15} className="mr-1.5" />{" "}
-                  {t("general.language")}
-                </span>
-                <span className="text-sm font-medium">
-                  {languageOptions.find((l) => l.value === language)?.label}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground flex items-center">
-                  <Clock size={15} className="mr-1.5" /> {t("editor.justNow")}
-                </span>
-                <span className="text-sm font-medium">
-                  {t("editor.justNow")}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground flex items-center">
-                  <Share2 size={15} className="mr-1.5" />{" "}
-                  {t("editor.shares", "Shares")}
-                </span>
-                <span className="text-sm font-medium">4.7M+</span>
               </div>
             </div>
           </div>
-        </div>
-      </Tabs>
+        </Tabs>
+      </div>
     </div>
   );
 };
