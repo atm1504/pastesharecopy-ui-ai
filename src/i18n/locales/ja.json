@@ -39,7 +39,8 @@
     "cookies": "Cookie",
     "copyright": "All rights reserved.",
     "yourSharedLinks": "共有リンク",
-    "openLink": "リンクを開く"
+    "openLink": "リンクを開く",
+    "viewYourLinks": "あなたのリンクを表示"
   },
   "actions": {
     "startPasting": "貼り付けを開始",
@@ -137,6 +138,43 @@
       "buttonElement": "ボタン要素",
       "cardHeader": "カードヘッダー",
       "cardContent": "カードの内容はここに表示されます"
+    }
+  },
+  "links": {
+    "title": "あなたのリンク",
+    "description": "共有コンテンツを管理・追跡",
+    "noLinks": "まだリンクを作成していません。",
+    "createFirst": "最初のリンクを作成",
+    "viewAll": "すべてのリンクを表示",
+    "createdOn": "作成日",
+    "expiresOn": "有効期限",
+    "views": "閲覧数",
+    "view": "閲覧",
+    "expired": "期限切れ",
+    "confidential": "機密",
+    "loading": "リンクを読み込み中...",
+    "error": "リンクの読み込みエラー",
+    "retry": "再試行",
+    "pagination": {
+      "previous": "前へ",
+      "next": "次へ",
+      "page": "ページ",
+      "of": "/"
+    }
+  },
+  "usage": {
+    "dailyLimit": "日次制限",
+    "used": "使用済み",
+    "remaining": "残り",
+    "unlimited": "無制限",
+    "upgradeForMore": "アップグレードでもっと",
+    "todayUsage": "今日の使用量",
+    "totalCreated": "総作成数",
+    "availableLinks": "利用可能リンク",
+    "userType": {
+      "anonymous": "匿名ユーザー",
+      "free": "無料ユーザー",
+      "premium": "プレミアムユーザー"
     }
   }
 }

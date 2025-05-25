@@ -45,7 +45,7 @@ const NavBar: React.FC<NavBarProps> = ({ onViewLinksClick }) => {
             className="hidden md:flex"
           >
             <LinkIcon className="h-4 w-4 mr-2" />
-            {t("view_your_links")}
+            {t("navigation.viewYourLinks")}
           </Button>
         )}
         <DropdownMenu>

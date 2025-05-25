@@ -39,7 +39,8 @@
     "cookies": "Cookies",
     "copyright": "Tous droits réservés.",
     "yourSharedLinks": "Vos Liens Partagés",
-    "openLink": "Ouvrir le lien"
+    "openLink": "Ouvrir le lien",
+    "viewYourLinks": "Voir Vos Liens"
   },
   "actions": {
     "startPasting": "Commencer à Coller",
@@ -137,6 +138,43 @@
       "buttonElement": "Élément Bouton",
       "cardHeader": "En-tête de Carte",
       "cardContent": "Le contenu de la carte va ici"
+    }
+  },
+  "links": {
+    "title": "Vos Liens",
+    "description": "Gérez et suivez votre contenu partagé",
+    "noLinks": "Vous n'avez encore créé aucun lien.",
+    "createFirst": "Créez votre premier lien",
+    "viewAll": "Voir Tous les Liens",
+    "createdOn": "Créé le",
+    "expiresOn": "Expire le",
+    "views": "vues",
+    "view": "vue",
+    "expired": "Expiré",
+    "confidential": "Confidentiel",
+    "loading": "Chargement de vos liens...",
+    "error": "Erreur lors du chargement des liens",
+    "retry": "Réessayer",
+    "pagination": {
+      "previous": "Précédent",
+      "next": "Suivant",
+      "page": "Page",
+      "of": "de"
+    }
+  },
+  "usage": {
+    "dailyLimit": "Limite Quotidienne",
+    "used": "Utilisé",
+    "remaining": "Restant",
+    "unlimited": "Illimité",
+    "upgradeForMore": "Mettre à niveau pour plus",
+    "todayUsage": "Utilisation d'Aujourd'hui",
+    "totalCreated": "Total Créé",
+    "availableLinks": "Liens Disponibles",
+    "userType": {
+      "anonymous": "Utilisateur Anonyme",
+      "free": "Utilisateur Gratuit",
+      "premium": "Utilisateur Premium"
     }
   }
 }

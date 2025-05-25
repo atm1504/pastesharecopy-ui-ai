@@ -39,7 +39,8 @@
     "cookies": "Cookies",
     "copyright": "All rights reserved.",
     "yourSharedLinks": "Your Shared Links",
-    "openLink": "Open link"
+    "openLink": "Open link",
+    "viewYourLinks": "View Your Links"
   },
   "actions": {
     "startPasting": "Start Pasting",
@@ -137,6 +138,43 @@
       "buttonElement": "Button Element",
       "cardHeader": "Card Header",
       "cardContent": "Card content goes here"
+    }
+  },
+  "links": {
+    "title": "Your Links",
+    "description": "Manage and track your shared content",
+    "noLinks": "You haven't created any links yet.",
+    "createFirst": "Create your first link",
+    "viewAll": "View All Links",
+    "createdOn": "Created on",
+    "expiresOn": "Expires on",
+    "views": "views",
+    "view": "view",
+    "expired": "Expired",
+    "confidential": "Confidential",
+    "loading": "Loading your links...",
+    "error": "Error loading links",
+    "retry": "Retry",
+    "pagination": {
+      "previous": "Previous",
+      "next": "Next",
+      "page": "Page",
+      "of": "of"
+    }
+  },
+  "usage": {
+    "dailyLimit": "Daily Limit",
+    "used": "Used",
+    "remaining": "Remaining",
+    "unlimited": "Unlimited",
+    "upgradeForMore": "Upgrade for more",
+    "todayUsage": "Today's Usage",
+    "totalCreated": "Total Created",
+    "availableLinks": "Available Links",
+    "userType": {
+      "anonymous": "Anonymous User",
+      "free": "Free User",
+      "premium": "Premium User"
     }
   }
 }
