@@ -39,7 +39,8 @@
     "cookies": "Cookies",
     "copyright": "Todos los derechos reservados.",
     "yourSharedLinks": "Tus Enlaces Compartidos",
-    "openLink": "Abrir enlace"
+    "openLink": "Abrir enlace",
+    "viewYourLinks": "Ver Tus Enlaces"
   },
   "actions": {
     "startPasting": "Comenzar a Pegar",
@@ -137,6 +138,43 @@
       "buttonElement": "Elemento Botón",
       "cardHeader": "Encabezado de Tarjeta",
       "cardContent": "El contenido de la tarjeta va aquí"
+    }
+  },
+  "links": {
+    "title": "Tus Enlaces",
+    "description": "Gestiona y rastrea tu contenido compartido",
+    "noLinks": "Aún no has creado ningún enlace.",
+    "createFirst": "Crea tu primer enlace",
+    "viewAll": "Ver Todos los Enlaces",
+    "createdOn": "Creado el",
+    "expiresOn": "Expira el",
+    "views": "visualizaciones",
+    "view": "visualización",
+    "expired": "Expirado",
+    "confidential": "Confidencial",
+    "loading": "Cargando tus enlaces...",
+    "error": "Error al cargar enlaces",
+    "retry": "Reintentar",
+    "pagination": {
+      "previous": "Anterior",
+      "next": "Siguiente",
+      "page": "Página",
+      "of": "de"
+    }
+  },
+  "usage": {
+    "dailyLimit": "Límite Diario",
+    "used": "Usado",
+    "remaining": "Restante",
+    "unlimited": "Ilimitado",
+    "upgradeForMore": "Actualizar para más",
+    "todayUsage": "Uso de Hoy",
+    "totalCreated": "Total Creado",
+    "availableLinks": "Enlaces Disponibles",
+    "userType": {
+      "anonymous": "Usuario Anónimo",
+      "free": "Usuario Gratuito",
+      "premium": "Usuario Premium"
     }
   }
 }

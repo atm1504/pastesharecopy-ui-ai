@@ -55,6 +55,8 @@ import hljs from "highlight.js";
 import "highlight.js/styles/atom-one-dark.css";
 import { useTheme } from "@/hooks/useTheme";
 import { useTranslation } from "react-i18next";
+import { createSnippet, CreateSnippetRequest } from "@/lib/api";
+import { useAuth } from "@/hooks/useAuth";
 
 // Import light theme for hljs
 import "highlight.js/styles/github.css";
@@ -780,10 +782,12 @@ const PasteCodeEditor: React.FC = () => {
   }>({
     isValid: true,
   });
+  const [remainingLinks, setRemainingLinks] = useState<number | null>(null);
 
   const isDarkMode = useIsDarkMode();
   const { toast } = useToast();
   const { t } = useTranslation();
+  const { profile, user } = useAuth();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -821,6 +825,13 @@ const PasteCodeEditor: React.FC = () => {
     }
   }, [code, language]);
 
+  // Update remaining links when profile changes
+  useEffect(() => {
+    if (profile) {
+      setRemainingLinks(profile.availableLinks);
+    }
+  }, [profile]);
+
   const handleLanguageChange = (value: string) => {
     setLanguage(value);
   };
@@ -830,20 +841,80 @@ const PasteCodeEditor: React.FC = () => {
     setCode(e.target.value);
   };
 
-  const handleGenerateLink = (values: FormValues) => {
+  const handleGenerateLink = async (values: FormValues) => {
+    if (!code.trim()) {
+      toast({
+        title: "Error",
+        description: "Please add some code before generating a link.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsGeneratingLink(true);
 
-    // Simulate API call
-    setTimeout(() => {
-      const uniqueId = Math.random().toString(36).substring(2, 10);
-      setGeneratedLink(`https://pastesharecopy.com/${uniqueId}`);
-      setIsGeneratingLink(false);
+    try {
+      const snippetData: CreateSnippetRequest = {
+        code: code,
+        language: language,
+        title: `${language} snippet`, // You could make this configurable
+        expiration: values.expiration,
+        isConfidential: false, // For now, no confidential snippets in free version
+      };
+
+      const result = await createSnippet(snippetData);
+
+      setGeneratedLink(result.fullUrl);
+      setRemainingLinks(result.remainingLinks);
 
       toast({
         title: "Link generated successfully!",
-        description: "The link will expire based on your selected timeframe.",
+        description: `Your code snippet is now shareable. ${
+          result.remainingLinks >= 0
+            ? `You have ${result.remainingLinks} snippets remaining.`
+            : "You have unlimited snippets."
+        }`,
       });
-    }, 1000);
+    } catch (error: any) {
+      console.error("Error generating link:", error);
+
+      // Handle specific error cases
+      if (error.message.includes("snippet limit")) {
+        toast({
+          title: "Snippet Limit Reached",
+          description:
+            "You've reached your snippet limit. Upgrade to premium for unlimited snippets!",
+          variant: "destructive",
+          action: (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                // Redirect to premium page
+                window.location.href = "/premium";
+              }}
+            >
+              Upgrade
+            </Button>
+          ),
+        });
+      } else if (error.message.includes("Confidential snippets")) {
+        toast({
+          title: "Premium Feature",
+          description:
+            "Confidential snippets are only available for premium users.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error generating link",
+          description: error.message || "Please try again in a moment.",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setIsGeneratingLink(false);
+    }
   };
 
   const copyToClipboard = async (text: string, message: string) => {

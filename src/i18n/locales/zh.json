@@ -39,7 +39,8 @@
     "cookies": "Cookie",
     "copyright": "All rights reserved.",
     "yourSharedLinks": "您的共享链接",
-    "openLink": "打开链接"
+    "openLink": "打开链接",
+    "viewYourLinks": "查看您的链接"
   },
   "actions": {
     "startPasting": "开始粘贴",
@@ -137,6 +138,43 @@
       "buttonElement": "按钮元素",
       "cardHeader": "卡片标题",
       "cardContent": "卡片内容将显示在这里"
+    }
+  },
+  "links": {
+    "title": "您的链接",
+    "description": "管理和跟踪您的共享内容",
+    "noLinks": "您还没有创建任何链接。",
+    "createFirst": "创建您的第一个链接",
+    "viewAll": "查看所有链接",
+    "createdOn": "创建于",
+    "expiresOn": "过期于",
+    "views": "浏览量",
+    "view": "浏览",
+    "expired": "已过期",
+    "confidential": "机密",
+    "loading": "正在加载您的链接...",
+    "error": "加载链接时出错",
+    "retry": "重试",
+    "pagination": {
+      "previous": "上一页",
+      "next": "下一页",
+      "page": "第",
+      "of": "页，共"
+    }
+  },
+  "usage": {
+    "dailyLimit": "每日限制",
+    "used": "已使用",
+    "remaining": "剩余",
+    "unlimited": "无限制",
+    "upgradeForMore": "升级获取更多",
+    "todayUsage": "今日使用量",
+    "totalCreated": "总创建数",
+    "availableLinks": "可用链接",
+    "userType": {
+      "anonymous": "匿名用户",
+      "free": "免费用户",
+      "premium": "高级用户"
     }
   }
 }

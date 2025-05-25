@@ -2,14 +2,17 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Link } from "react-router-dom";
-import { LogIn, Globe, Link as LinkIcon } from "lucide-react";
+import { LogIn, LogOut, Globe, Link as LinkIcon, User } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { useAuthContext } from "@/contexts/AuthContext";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface NavBarProps {
   onViewLinksClick?: () => void;
@@ -17,103 +20,135 @@ interface NavBarProps {
 
 const NavBar: React.FC<NavBarProps> = ({ onViewLinksClick }) => {
   const { t, i18n } = useTranslation();
+  const { profile, loading, signOut } = useAuthContext();
 
-  const languages = {
-    en: "English",
-    es: "Español",
-    fr: "Français",
-    de: "Deutsch",
-    zh: "中文",
-    ja: "日本語",
-  };
-
-  const handleLanguageChange = (lang: string) => {
-    i18n.changeLanguage(lang);
+  const changeLanguage = (lng: string) => {
+    i18n.changeLanguage(lng);
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 max-w-screen-2xl items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Link to="/" className="flex items-center space-x-2">
-            <div className="font-bold text-2xl bg-gradient-to-r from-primary to-indigo-500 bg-clip-text text-transparent">
-              {t("general.appName")}
-            </div>
-          </Link>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <nav className="hidden md:flex items-center gap-6 text-sm">
-            <Link to="/" className="transition-colors hover:text-foreground/80">
-              {t("navigation.home")}
-            </Link>
-            <Link
-              to="/pricing"
-              className="transition-colors hover:text-foreground/80"
-            >
-              {t("navigation.pricing")}
-            </Link>
-            <a
-              href="https://github.com/yourusername/pastesharecopy"
-              target="_blank"
-              rel="noreferrer"
-              className="transition-colors hover:text-foreground/80"
-            >
-              {t("general.github")}
-            </a>
-            <Button
-              variant="ghost"
-              className="flex items-center gap-1 transition-colors hover:text-foreground/80"
-              onClick={onViewLinksClick}
-            >
-              <LinkIcon className="h-4 w-4 mr-1" />
-              {t("navigation.dashboard")}
-            </Button>
-          </nav>
-
-          <div className="flex items-center gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative">
-                  <Globe className="h-4 w-4" />
-                  <span className="sr-only">{t("general.language")}</span>
-                  <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-primary rounded-full flex items-center justify-center">
-                    <span className="text-[9px] font-bold text-primary-foreground">
-                      {i18n.language.substring(0, 2).toUpperCase()}
-                    </span>
-                  </div>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="end"
-                className="w-56 max-h-80 overflow-y-auto"
-              >
-                {Object.entries(languages).map(([code, name]) => (
-                  <DropdownMenuItem
-                    key={code}
-                    onClick={() => handleLanguageChange(code)}
-                    className={
-                      i18n.language.startsWith(code) ? "bg-accent" : ""
-                    }
-                  >
-                    {name}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <ThemeToggle />
-
-            <Button asChild variant="default" className="hidden md:flex">
-              <Link to="/login" className="flex items-center gap-1">
-                <LogIn className="h-4 w-4 mr-1" />
-                {t("navigation.login")}
-              </Link>
-            </Button>
-          </div>
-        </div>
+    <div className="flex items-center justify-between p-4 border-b">
+      <div className="flex items-center space-x-2">
+        <Link to="/" className="text-2xl font-bold">
+          PasteShareCopy
+        </Link>
+        <span className="ml-2 px-1.5 py-0.5 text-xs dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded">
+          Beta
+        </span>
       </div>
-    </header>
+      <div className="flex items-center space-x-4">
+        {onViewLinksClick && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onViewLinksClick}
+            className="hidden md:flex"
+          >
+            <LinkIcon className="h-4 w-4 mr-2" />
+            {t("navigation.viewYourLinks")}
+          </Button>
+        )}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon">
+              <Globe className="h-5 w-5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              onClick={() => changeLanguage("en")}
+              className="cursor-pointer"
+            >
+              English
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => changeLanguage("es")}
+              className="cursor-pointer"
+            >
+              Español
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => changeLanguage("fr")}
+              className="cursor-pointer"
+            >
+              Français
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <ThemeToggle />
+
+        {profile ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="relative">
+                {profile.isAuthenticated ? (
+                  <Avatar className="h-8 w-8">
+                    {profile.photoURL ? (
+                      <AvatarImage
+                        src={profile.photoURL}
+                        alt={profile.displayName}
+                      />
+                    ) : (
+                      <AvatarFallback>
+                        {profile.displayName.slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    )}
+                  </Avatar>
+                ) : (
+                  <User className="h-5 w-5" />
+                )}
+                {profile.availableLinks > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-green-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
+                    {profile.availableLinks > 99
+                      ? "99+"
+                      : profile.availableLinks}
+                  </span>
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <div className="px-2 py-1.5 text-sm font-semibold">
+                {profile.displayName}
+              </div>
+              <div className="px-2 py-1 text-xs text-muted-foreground">
+                {profile.isAuthenticated ? profile.email : "Anonymous User"}
+              </div>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem>
+                <span className="mr-2">Links:</span> {profile.availableLinks}{" "}
+                available
+              </DropdownMenuItem>
+              {profile.gamePoints > 0 && (
+                <DropdownMenuItem>
+                  <span className="mr-2">Game Points:</span>{" "}
+                  {profile.gamePoints}
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuSeparator />
+              {profile.isAuthenticated ? (
+                <DropdownMenuItem onClick={() => signOut()}>
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Sign out
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem asChild>
+                  <Link to="/login">
+                    <LogIn className="h-4 w-4 mr-2" />
+                    Sign in
+                  </Link>
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : (
+          <Button variant="ghost" size="icon" asChild>
+            <Link to="/login">
+              <LogIn className="h-5 w-5" />
+            </Link>
+          </Button>
+        )}
+      </div>
+    </div>
   );
 };
 
