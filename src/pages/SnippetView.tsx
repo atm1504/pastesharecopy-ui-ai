@@ -13,6 +13,8 @@ import {
   ArrowLeft,
   Share2,
   Download,
+  Save,
+  Edit,
 } from "lucide-react";
 import { getSnippet, GetSnippetResponse, TimestampType } from "@/lib/api";
 import NavBar from "@/components/NavBar";
@@ -20,6 +22,7 @@ import FooterSection from "@/components/FooterSection";
 import CodeEditor from "@uiw/react-textarea-code-editor";
 import { useTheme } from "@/hooks/useTheme";
 import { format } from "date-fns";
+import { useAuth } from "@/hooks/useAuth";
 
 // Simple code display component as fallback
 const SimpleCodeDisplay: React.FC<{
@@ -58,6 +61,7 @@ const SnippetView: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { theme } = useTheme();
+  const { user } = useAuth();
 
   const [snippet, setSnippet] = useState<GetSnippetResponse["snippet"] | null>(
     null
@@ -65,6 +69,7 @@ const SnippetView: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [codeEditorFailed, setCodeEditorFailed] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
   const isDarkMode =
     theme === "dark" ||
@@ -225,6 +230,21 @@ const SnippetView: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
+  // Function to handle edit button click
+  const handleEditClick = () => {
+    if (!snippet) return;
+    
+    // Navigate to editor with the snippet data
+    navigate('/', { 
+      state: { 
+        editMode: true,
+        snippetId: snippet.id,
+        code: snippet.content,
+        language: snippet.language
+      }
+    });
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -325,6 +345,29 @@ const SnippetView: React.FC = () => {
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg">Code</CardTitle>
               <div className="flex items-center gap-2">
+                {/* Add edit button for authenticated users */}
+                {user && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleEditClick}
+                  >
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit
+                  </Button>
+                )}
+                {/* Show disabled edit button for anonymous users */}
+                {!user && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled
+                    title="Sign in to edit this snippet"
+                  >
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit
+                  </Button>
+                )}
                 <Button
                   size="sm"
                   variant="outline"
