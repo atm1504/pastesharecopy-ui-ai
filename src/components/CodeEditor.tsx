@@ -897,7 +897,7 @@ const PasteCodeEditor: React.FC = () => {
             : "You have unlimited snippets."
         }`,
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error generating link:", error);
 
       // Handle specific error cases
