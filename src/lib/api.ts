@@ -1,5 +1,4 @@
 import { httpsCallable } from "firebase/functions";
-import { getAuth } from "firebase/auth";
 import { functions } from "./firebase";
 import { getDeviceId } from "./deviceId";
 
@@ -57,109 +56,91 @@ function isFirebaseError(error: unknown): error is FirebaseError {
 export const getUserProfile = async (deviceId?: string) => {
   try {
     const deviceIdToUse = deviceId || getDeviceId();
+    const getUserProfileFn = httpsCallable(functions, "get_user_profile");
 
-    const auth = getAuth();
-    const user = auth.currentUser;
-
-    if (!user) {
-      throw new Error("User not authenticated");
-    }
-
-    const idToken = await user.getIdToken();
-
-    const response = await fetch("/api/getUserProfile", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${idToken}`, // Required for auth-protected Cloud Functions
-      },
-      body: JSON.stringify({
-        data: {
-          deviceId: deviceIdToUse,
-        },
-      }),
+    const result = await getUserProfileFn({
+      deviceId: deviceIdToUse,
     });
 
-    if (!response.ok) {
-      const errorBody = await response.text();
-      throw new Error(`Request failed: ${response.status} - ${errorBody}`);
+    return result.data;
+  } catch (error: unknown) {
+    console.error("Error getting user profile:", error);
+
+    if (isFirebaseError(error)) {
+      if (error.code === "functions/unauthenticated") {
+        throw new Error("Authentication or device identification is required.");
+      } else if (error.code === "functions/not-found") {
+        throw new Error(
+          "User profile not found. Please register device first."
+        );
+      }
     }
 
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error("Error getting user profile:", error);
-    throw error;
+    const errorMessage =
+      error instanceof Error ? error.message : "Failed to get user profile";
+    throw new Error(errorMessage);
   }
 };
 
 export const trackAnonymousUser = async () => {
   try {
     const deviceId = getDeviceId();
+    const trackAnonymousUserFn = httpsCallable(
+      functions,
+      "track_anonymous_user"
+    );
 
-    // Optional: get Firebase Auth token if your Cloud Function requires it
-    const auth = getAuth();
-    const currentUser = auth.currentUser;
-    const idToken = currentUser ? await currentUser.getIdToken() : undefined;
-
-    const response = await fetch("/api/trackAnonymousUser", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(idToken && { Authorization: `Bearer ${idToken}` }),
-      },
-      body: JSON.stringify({
-        data: {
-          deviceId,
-        },
-      }),
+    const result = await trackAnonymousUserFn({
+      deviceId,
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Failed to track anonymous user");
+    return result.data;
+  } catch (error: unknown) {
+    console.error("Error tracking anonymous user:", error);
+
+    if (isFirebaseError(error)) {
+      if (error.code === "functions/invalid-argument") {
+        throw new Error("Device ID is required to track anonymous user.");
+      }
     }
 
-    const result = await response.json();
-    return result.result || result; // Firebase wraps the return under `result`
-  } catch (error) {
-    console.error("Error tracking anonymous user:", error);
-    throw error;
+    const errorMessage =
+      error instanceof Error ? error.message : "Failed to track anonymous user";
+    throw new Error(errorMessage);
   }
 };
 
 export const migrateAnonymousUser = async () => {
   try {
     const deviceId = getDeviceId();
+    const migrateAnonymousUserFn = httpsCallable(
+      functions,
+      "migrate_anonymous_user"
+    );
 
-    const auth = getAuth();
-    // Optional: Get ID token if auth is required
-    const currentUser = auth.currentUser;
-    const idToken = currentUser ? await currentUser.getIdToken() : undefined;
-
-    const response = await fetch("/api/migrateAnonymousUser", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(idToken && { Authorization: `Bearer ${idToken}` }),
-      },
-      body: JSON.stringify({
-        data: {
-          deviceId,
-        },
-      }),
+    const result = await migrateAnonymousUserFn({
+      deviceId,
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Failed to migrate anonymous user");
+    return result.data;
+  } catch (error: unknown) {
+    console.error("Error migrating anonymous user:", error);
+
+    if (isFirebaseError(error)) {
+      if (error.code === "functions/invalid-argument") {
+        throw new Error("Device ID is required to migrate anonymous user.");
+      } else if (error.code === "functions/unauthenticated") {
+        throw new Error(
+          "Authentication is required to migrate anonymous user."
+        );
+      }
     }
 
-    const result = await response.json();
-    return result.result || result; // Firebase may wrap result under `result`
-  } catch (error) {
-    console.error("Error migrating anonymous user:", error);
-    throw error;
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : "Failed to migrate anonymous user";
+    throw new Error(errorMessage);
   }
 };
 
@@ -170,9 +151,6 @@ export const createSnippet = async (
   try {
     const deviceId = getDeviceId();
     const createSnippetFn = httpsCallable(functions, "create_snippet");
-
-    const auth = getAuth();
-    const currentUser = auth.currentUser;
 
     const requestData = {
       ...snippetData,
