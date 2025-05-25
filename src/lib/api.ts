@@ -279,3 +279,101 @@ export const cleanupExpiredSnippets = async () => {
     throw new Error(errorMessage);
   }
 };
+
+// Types for user snippets
+export interface UserSnippet {
+  id: string;
+  shortUrl: string;
+  title: string;
+  language: string;
+  createdAt: string;
+  expiresAt?: string;
+  lastViewed?: string;
+  viewCount: number;
+  isConfidential: boolean;
+  contentPreview: string;
+}
+
+export interface GetUserSnippetsResponse {
+  success: boolean;
+  snippets: UserSnippet[];
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    totalCount: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+    limit: number;
+  };
+}
+
+// Types for daily usage
+export interface DailyUsageResponse {
+  success: boolean;
+  userType: "anonymous" | "free" | "premium";
+  isLimitedUser: boolean;
+  dailyLimit: number; // -1 for unlimited
+  usedToday: number;
+  remainingToday: number; // -1 for unlimited
+  availableLinks: number;
+  totalLinksCreated: number;
+}
+
+// Get user's snippets with pagination
+export const getUserSnippets = async (
+  page: number = 1,
+  limit: number = 20
+): Promise<GetUserSnippetsResponse> => {
+  try {
+    const deviceId = getDeviceId();
+    const getUserSnippetsFn = httpsCallable(functions, "get_user_snippets");
+
+    const result = await getUserSnippetsFn({
+      deviceId,
+      page,
+      limit,
+    });
+
+    return result.data as GetUserSnippetsResponse;
+  } catch (error: unknown) {
+    console.error("Error getting user snippets:", error);
+
+    if (isFirebaseError(error)) {
+      if (error.code === "functions/invalid-argument") {
+        throw new Error("Invalid request parameters.");
+      } else if (error.code === "functions/unauthenticated") {
+        throw new Error("Authentication required to view snippets.");
+      }
+    }
+
+    const errorMessage =
+      error instanceof Error ? error.message : "Failed to retrieve snippets";
+    throw new Error(errorMessage);
+  }
+};
+
+// Get daily usage statistics
+export const getDailyUsage = async (): Promise<DailyUsageResponse> => {
+  try {
+    const deviceId = getDeviceId();
+    const getDailyUsageFn = httpsCallable(functions, "get_daily_usage");
+
+    const result = await getDailyUsageFn({
+      deviceId,
+    });
+
+    return result.data as DailyUsageResponse;
+  } catch (error: unknown) {
+    console.error("Error getting daily usage:", error);
+
+    if (isFirebaseError(error)) {
+      if (error.code === "functions/invalid-argument") {
+        throw new Error("Invalid request parameters.");
+      }
+    }
+
+    const errorMessage =
+      error instanceof Error ? error.message : "Failed to retrieve daily usage";
+    throw new Error(errorMessage);
+  }
+};
