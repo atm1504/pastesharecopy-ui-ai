@@ -61,9 +61,6 @@ const App = () => {
                   <Route path="/login" element={<Login />} />
                   <Route path="/premium" element={<Premium />} />
 
-                  {/* Snippet view route - handles short URLs */}
-                  <Route path="/:shortUrl" element={<SnippetView />} />
-
                   {/* Protected routes */}
                   <Route
                     path="/dashboard"
@@ -98,6 +95,9 @@ const App = () => {
                       </ProtectedRoute>
                     }
                   />
+
+                  {/* Snippet view route - handles short URLs (place before fallback) */}
+                  <Route path="/:shortUrl" element={<SnippetView />} />
 
                   {/* Fallback route */}
                   <Route path="*" element={<NotFound />} />

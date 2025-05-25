@@ -21,6 +21,9 @@ export interface CreateSnippetResponse {
   remainingLinks: number;
 }
 
+// Type for handling various timestamp formats from Firestore
+export type TimestampType = Date | { seconds: number } | string | number | null;
+
 export interface GetSnippetResponse {
   success: boolean;
   snippet: {
@@ -28,12 +31,26 @@ export interface GetSnippetResponse {
     title: string;
     content: string;
     language: string;
-    createdAt: any;
-    expiresAt?: any;
+    createdAt: TimestampType;
+    expiresAt?: TimestampType;
     viewCount: number;
     isConfidential: boolean;
     createdBy: string;
   };
+}
+
+// Type for Firebase function errors
+interface FirebaseError extends Error {
+  code?: string;
+  details?: unknown;
+}
+
+// Type guard to check if error is a Firebase error
+function isFirebaseError(error: unknown): error is FirebaseError {
+  return (
+    error instanceof Error &&
+    typeof (error as FirebaseError).code !== "undefined"
+  );
 }
 
 // Authentication API functions
@@ -164,23 +181,27 @@ export const createSnippet = async (
 
     const result = await createSnippetFn(requestData);
     return result.data as CreateSnippetResponse;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error creating snippet:", error);
 
     // Handle specific Firebase function errors
-    if (error.code === "functions/resource-exhausted") {
-      throw new Error(
-        "You have reached your snippet limit. Please upgrade to premium for unlimited snippets."
-      );
-    } else if (error.code === "functions/permission-denied") {
-      throw new Error(
-        "Confidential snippets are only available for premium users."
-      );
-    } else if (error.code === "functions/invalid-argument") {
-      throw new Error("Invalid snippet data provided.");
+    if (isFirebaseError(error)) {
+      if (error.code === "functions/resource-exhausted") {
+        throw new Error(
+          "You have reached your snippet limit. Please upgrade to premium for unlimited snippets."
+        );
+      } else if (error.code === "functions/permission-denied") {
+        throw new Error(
+          "Confidential snippets are only available for premium users."
+        );
+      } else if (error.code === "functions/invalid-argument") {
+        throw new Error("Invalid snippet data provided.");
+      }
     }
 
-    throw new Error(error.message || "Failed to create snippet");
+    const errorMessage =
+      error instanceof Error ? error.message : "Failed to create snippet";
+    throw new Error(errorMessage);
   }
 };
 
@@ -191,25 +212,56 @@ export const getSnippet = async (
     const deviceId = getDeviceId();
     const getSnippetFn = httpsCallable(functions, "get_snippet");
 
+    console.log("Calling get_snippet function with:", { shortUrl, deviceId });
+
     const result = await getSnippetFn({
       shortUrl,
       deviceId,
     });
 
-    return result.data as GetSnippetResponse;
-  } catch (error: any) {
-    console.error("Error getting snippet:", error);
+    console.log("Raw function result:", result);
+    console.log("Result data:", result.data);
 
-    // Handle specific Firebase function errors
-    if (error.code === "functions/not-found") {
-      throw new Error("Snippet not found or has expired.");
-    } else if (error.code === "functions/permission-denied") {
-      throw new Error(
-        "This snippet is confidential and can only be accessed by its creator."
-      );
+    // Validate the response structure
+    if (!result.data) {
+      throw new Error("No data received from server");
     }
 
-    throw new Error(error.message || "Failed to retrieve snippet");
+    const response = result.data as GetSnippetResponse;
+
+    if (!response.success) {
+      throw new Error("Server returned unsuccessful response");
+    }
+
+    if (!response.snippet) {
+      throw new Error("No snippet data in response");
+    }
+
+    console.log("Parsed snippet:", response.snippet);
+    return response;
+  } catch (error: unknown) {
+    console.error("Error getting snippet:", error);
+
+    if (isFirebaseError(error)) {
+      console.error("Error details:", {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+      });
+
+      // Handle specific Firebase function errors
+      if (error.code === "functions/not-found") {
+        throw new Error("Snippet not found or has expired.");
+      } else if (error.code === "functions/permission-denied") {
+        throw new Error(
+          "This snippet is confidential and can only be accessed by its creator."
+        );
+      }
+    }
+
+    const errorMessage =
+      error instanceof Error ? error.message : "Failed to retrieve snippet";
+    throw new Error(errorMessage);
   }
 };
 
@@ -218,8 +270,12 @@ export const cleanupExpiredSnippets = async () => {
     const cleanupFn = httpsCallable(functions, "cleanup_expired_snippets");
     const result = await cleanupFn({});
     return result.data;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error cleaning up snippets:", error);
-    throw new Error(error.message || "Failed to cleanup expired snippets");
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : "Failed to cleanup expired snippets";
+    throw new Error(errorMessage);
   }
 };

@@ -14,12 +14,44 @@ import {
   Share2,
   Download,
 } from "lucide-react";
-import { getSnippet, GetSnippetResponse } from "@/lib/api";
+import { getSnippet, GetSnippetResponse, TimestampType } from "@/lib/api";
 import NavBar from "@/components/NavBar";
 import FooterSection from "@/components/FooterSection";
 import CodeEditor from "@uiw/react-textarea-code-editor";
 import { useTheme } from "@/hooks/useTheme";
 import { format } from "date-fns";
+
+// Simple code display component as fallback
+const SimpleCodeDisplay: React.FC<{
+  code: string;
+  language: string;
+  isDarkMode: boolean;
+}> = ({ code, language, isDarkMode }) => {
+  return (
+    <div
+      className={`relative ${
+        isDarkMode ? "bg-gray-900" : "bg-gray-50"
+      } rounded-lg overflow-hidden`}
+    >
+      <div
+        className={`px-3 py-2 text-xs border-b ${
+          isDarkMode
+            ? "bg-gray-800 text-gray-300 border-gray-700"
+            : "bg-gray-100 text-gray-600 border-gray-200"
+        }`}
+      >
+        {language}
+      </div>
+      <pre
+        className={`p-4 text-sm overflow-auto max-h-96 ${
+          isDarkMode ? "text-gray-100" : "text-gray-900"
+        }`}
+      >
+        <code>{code}</code>
+      </pre>
+    </div>
+  );
+};
 
 const SnippetView: React.FC = () => {
   const { shortUrl } = useParams<{ shortUrl: string }>();
@@ -32,11 +64,54 @@ const SnippetView: React.FC = () => {
   );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [codeEditorFailed, setCodeEditorFailed] = useState(false);
 
   const isDarkMode =
     theme === "dark" ||
     (theme === "system" &&
       window.matchMedia("(prefers-color-scheme: dark)").matches);
+
+  // Helper function to safely format timestamps
+  const formatTimestamp = (timestamp: TimestampType): string => {
+    if (!timestamp) return "Unknown";
+
+    try {
+      let date: Date;
+
+      // Handle Firestore timestamp format
+      if (
+        timestamp &&
+        typeof timestamp === "object" &&
+        "seconds" in timestamp
+      ) {
+        date = new Date(timestamp.seconds * 1000);
+      }
+      // Handle ISO string format
+      else if (typeof timestamp === "string") {
+        date = new Date(timestamp);
+      }
+      // Handle timestamp number
+      else if (typeof timestamp === "number") {
+        date = new Date(timestamp);
+      }
+      // Handle Date object
+      else if (timestamp instanceof Date) {
+        date = timestamp;
+      } else {
+        return "Unknown";
+      }
+
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        return "Unknown";
+      }
+
+      return format(date, "MMM d, yyyy");
+    } catch (error) {
+      console.error("Error formatting timestamp:", error, timestamp);
+      return "Unknown";
+    }
+  };
 
   useEffect(() => {
     const loadSnippet = async () => {
@@ -47,11 +122,25 @@ const SnippetView: React.FC = () => {
       }
 
       try {
+        console.log("Loading snippet for shortUrl:", shortUrl);
         const response = await getSnippet(shortUrl);
-        setSnippet(response.snippet);
-      } catch (err: any) {
+        console.log("Received snippet response:", response);
+
+        if (response && response.snippet) {
+          setSnippet(response.snippet);
+          console.log("Snippet content:", response.snippet.content);
+          console.log(
+            "Snippet content length:",
+            response.snippet.content?.length
+          );
+        } else {
+          setError("No snippet data received");
+        }
+      } catch (err: unknown) {
         console.error("Error loading snippet:", err);
-        setError(err.message || "Failed to load snippet");
+        const errorMessage =
+          err instanceof Error ? err.message : "Failed to load snippet";
+        setError(errorMessage);
       } finally {
         setLoading(false);
       }
@@ -207,10 +296,7 @@ const SnippetView: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-1">
                   <Calendar className="h-4 w-4" />
-                  {format(
-                    new Date(snippet.createdAt?.seconds * 1000 || Date.now()),
-                    "MMM d, yyyy"
-                  )}
+                  {formatTimestamp(snippet.createdAt)}
                 </div>
                 <div className="flex items-center gap-1">
                   <Eye className="h-4 w-4" />
@@ -219,11 +305,7 @@ const SnippetView: React.FC = () => {
                 {snippet.expiresAt && (
                   <div className="flex items-center gap-1">
                     <Clock className="h-4 w-4" />
-                    Expires{" "}
-                    {format(
-                      new Date(snippet.expiresAt.seconds * 1000),
-                      "MMM d, yyyy"
-                    )}
+                    Expires {formatTimestamp(snippet.expiresAt)}
                   </div>
                 )}
               </div>
@@ -269,19 +351,76 @@ const SnippetView: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="border rounded-lg overflow-hidden">
-              <CodeEditor
-                value={snippet.content}
-                language={snippet.language}
-                readOnly
-                data-color-mode={isDarkMode ? "dark" : "light"}
-                style={{
-                  fontSize: 14,
-                  backgroundColor: isDarkMode ? "#1a1a1a" : "#f8f9fa",
-                  fontFamily:
-                    'ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-                }}
-              />
+              {snippet.content ? (
+                !codeEditorFailed ? (
+                  <div
+                    onError={() => {
+                      console.warn(
+                        "CodeEditor failed to render, falling back to simple display"
+                      );
+                      setCodeEditorFailed(true);
+                    }}
+                  >
+                    <CodeEditor
+                      value={snippet.content}
+                      language={snippet.language}
+                      readOnly
+                      data-color-mode={isDarkMode ? "dark" : "light"}
+                      padding={16}
+                      style={{
+                        fontSize: 14,
+                        backgroundColor: isDarkMode ? "#1e1e2e" : "#ffffff",
+                        fontFamily:
+                          'ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                        minHeight: "200px",
+                        lineHeight: 1.5,
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <SimpleCodeDisplay
+                    code={snippet.content}
+                    language={snippet.language}
+                    isDarkMode={isDarkMode}
+                  />
+                )
+              ) : (
+                <div className="p-4 text-center text-muted-foreground">
+                  <p>No content available</p>
+                  <p className="text-xs mt-2">
+                    Content length: {snippet.content?.length || 0}
+                  </p>
+                </div>
+              )}
             </div>
+
+            {/* Debug info (remove in production) */}
+            {process.env.NODE_ENV === "development" && (
+              <div className="mt-4 p-2 bg-muted rounded text-xs">
+                <details>
+                  <summary>Debug Info</summary>
+                  <div className="mt-2 space-y-2">
+                    <div>
+                      <strong>Content length:</strong>{" "}
+                      {snippet.content?.length || 0}
+                    </div>
+                    <div>
+                      <strong>Language:</strong> {snippet.language}
+                    </div>
+                    <div>
+                      <strong>Code Editor Failed:</strong>{" "}
+                      {codeEditorFailed ? "Yes" : "No"}
+                    </div>
+                    <div>
+                      <strong>Content preview:</strong>
+                    </div>
+                    <pre className="overflow-auto max-h-40 bg-gray-100 p-2 rounded text-xs">
+                      {JSON.stringify(snippet, null, 2)}
+                    </pre>
+                  </div>
+                </details>
+              </div>
+            )}
           </CardContent>
         </Card>
       </main>
