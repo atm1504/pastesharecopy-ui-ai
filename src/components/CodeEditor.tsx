@@ -354,12 +354,55 @@ const languageOptions = [
   { value: "powershell", label: "PowerShell" },
 ];
 
+// AI services configuration type
+interface AIService {
+  id: string;
+  name: string;
+  url: string;
+  waitBeforeOpen?: boolean;
+  inputSelector?: string;
+  setupScript?: () => void;
+}
+
 // AI services to directly paste to
-const aiServices = [
-  { id: "gpt", name: "ChatGPT", url: "https://chat.openai.com/" },
-  { id: "claude", name: "Claude", url: "https://claude.ai/" },
-  { id: "deepseek", name: "DeepSeek", url: "https://chat.deepseek.com/" },
-  { id: "grok", name: "Grok", url: "https://grok.x.ai/" },
+const aiServices: AIService[] = [
+  { 
+    id: "gpt", 
+    name: "ChatGPT", 
+    url: "https://chat.openai.com/chat",
+    waitBeforeOpen: true,
+    inputSelector: 'textarea[placeholder*="Send a message"]'
+  },
+  { 
+    id: "claude", 
+    name: "Claude", 
+    url: "https://claude.ai/chats",
+    waitBeforeOpen: true,
+    inputSelector: '[role="textbox"], .ProseMirror, [contenteditable="true"]',
+    setupScript: () => {
+      // Claude specific setup - try to focus and trigger input events
+      const input = document.querySelector('[role="textbox"], .ProseMirror, [contenteditable="true"]') as HTMLElement;
+      if (input) {
+        input.focus();
+        input.click();
+        // Trigger input events to ensure Claude recognizes the paste
+        input.dispatchEvent(new Event('focus', { bubbles: true }));
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    }
+  },
+  { 
+    id: "deepseek", 
+    name: "DeepSeek", 
+    url: "https://chat.deepseek.com/",
+    inputSelector: 'textarea'
+  },
+  { 
+    id: "grok", 
+    name: "Grok", 
+    url: "https://grok.x.ai/",
+    inputSelector: 'textarea, [contenteditable="true"]'
+  },
 ];
 
 // Statistics for this paste (would be fetched from backend in real app)
@@ -976,36 +1019,165 @@ const PasteCodeEditor: React.FC = () => {
     }
   };
 
-  const handleAIPaste = async (service: {
-    id: string;
-    name: string;
-    url: string;
-  }) => {
-    // First, copy the code to clipboard
+  const handleAIPaste = async (service: AIService) => {
     try {
+      // Copy to clipboard
       await navigator.clipboard.writeText(code);
+      
+      toast({
+        title: `Opening ${service.name}...`,
+        description: "Attempting automatic paste",
+      });
 
-      // Then open the AI service in a new tab
-      const aiWindow = window.open(service.url, "_blank");
-      if (aiWindow) {
-        toast({
-          title: `Code copied for ${service.name}!`,
-          description: "Just paste it (Ctrl+V/Cmd+V) in the chat",
-        });
+      // Function to attempt automatic paste
+      const attemptAutoPaste = async (targetWindow: Window) => {
+        try {
+          // Wait for the input element to be available
+          const maxAttempts = 10;
+          let attempts = 0;
+          
+          const tryPaste = async () => {
+            if (attempts >= maxAttempts) return false;
+            attempts++;
+
+            try {
+              // Try to find the input element using the service-specific selector
+              const input = service.inputSelector 
+                ? targetWindow.document.querySelector(service.inputSelector)
+                : targetWindow.document.querySelector('textarea, [contenteditable="true"]');
+
+              if (!input) {
+                // If input not found, wait and retry
+                await new Promise(resolve => setTimeout(resolve, 500));
+                return await tryPaste();
+              }
+
+              // Run any service-specific setup
+              if (service.setupScript) {
+                service.setupScript.call(targetWindow.document);
+              }
+
+              // Focus the input
+              (input as HTMLElement).focus();
+              
+              // Try multiple paste methods
+              const pasteMethods = [
+                // Method 1: execCommand
+                () => document.execCommand('paste'),
+                
+                // Method 2: Clipboard API
+                async () => {
+                  const text = await navigator.clipboard.readText();
+                  if (input instanceof HTMLTextAreaElement) {
+                    input.value = text;
+                  } else {
+                    input.textContent = text;
+                  }
+                  input.dispatchEvent(new Event('input', { bubbles: true }));
+                },
+                
+                // Method 3: Keyboard simulation
+                () => {
+                  const isMac = navigator.platform.includes('Mac');
+                  input.dispatchEvent(new KeyboardEvent('keydown', {
+                    key: 'v',
+                    code: 'KeyV',
+                    ctrlKey: !isMac,
+                    metaKey: isMac,
+                    bubbles: true
+                  }));
+                }
+              ];
+
+              // Try each paste method until one works
+              for (const method of pasteMethods) {
+                try {
+                  await method();
+                  // Check if paste was successful
+                  if (input instanceof HTMLTextAreaElement && input.value.length > 0) {
+                    return true;
+                  } else if (input.textContent && input.textContent.length > 0) {
+                    return true;
+                  }
+                } catch (e) {
+                  console.warn('Paste method failed:', e);
+                  continue;
+                }
+              }
+
+              // If we got here, none of the methods worked
+              return false;
+            } catch (err) {
+              console.warn('Paste attempt failed:', err);
+              await new Promise(resolve => setTimeout(resolve, 500));
+              return await tryPaste();
+            }
+          };
+
+          return await tryPaste();
+        } catch (err) {
+          console.error('Auto-paste attempt failed:', err);
+          return false;
+        }
+      };
+
+      // Function to open the AI service
+      const openAIService = async () => {
+        const targetUrl = service.url;
+        const aiWindow = window.open(targetUrl, "_blank");
+        
+        if (!aiWindow) {
+          toast({
+            title: "Popup Blocked",
+            description: "Please allow popups and try again, or open the service manually",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        // Wait for window to load
+        try {
+          aiWindow.onload = async () => {
+            // Give extra time for the UI to be fully ready
+            await new Promise(resolve => setTimeout(resolve, service.id === 'claude' ? 2000 : 1000));
+            
+            // Attempt automatic paste
+            const success = await attemptAutoPaste(aiWindow);
+            
+            if (success) {
+              toast({
+                title: "Success!",
+                description: "Code automatically pasted",
+              });
+            } else {
+              // Fallback to manual paste
+              toast({
+                description: `Please paste manually (${navigator.platform.includes('Mac') ? '⌘+V' : 'Ctrl+V'})`,
+              });
+            }
+          };
+        } catch (err) {
+          console.error('Error during auto-paste:', err);
+          // Fallback to manual paste
+          toast({
+            description: `Please paste manually (${navigator.platform.includes('Mac') ? '⌘+V' : 'Ctrl+V'})`,
+          });
+        }
+      };
+
+      // Add a small delay for services that need it
+      if (service.waitBeforeOpen) {
+        setTimeout(openAIService, 500);
       } else {
-        toast({
-          title: `Code copied for ${service.name}!`,
-          description:
-            "Popup blocked, but you can still paste the code manually",
-        });
+        openAIService();
       }
     } catch (err) {
+      console.error("Error handling AI paste:", err);
       toast({
         title: "Failed to copy code",
-        description: "Please try again or copy manually",
+        description: "Please try copying manually",
         variant: "destructive",
       });
-      console.error("Error copying code:", err);
     }
   };
 
@@ -1028,10 +1200,10 @@ const PasteCodeEditor: React.FC = () => {
           description: "Snippet updated successfully",
         });
       }
-    } catch (error) {
+    } catch (err) {
       toast({
         title: "Error updating snippet",
-        description: error.message || "Please try again",
+        description: err instanceof Error ? err.message : "Please try again",
         variant: "destructive",
       });
     }
@@ -1047,10 +1219,10 @@ const PasteCodeEditor: React.FC = () => {
         setSnippetId(result.snippet.id);
         setIsEditing(true);
       }
-    } catch (error) {
+    } catch (err) {
       toast({
         title: "Error loading snippet",
-        description: error.message || "Please try again",
+        description: err instanceof Error ? err.message : "Please try again",
         variant: "destructive",
       });
     }
