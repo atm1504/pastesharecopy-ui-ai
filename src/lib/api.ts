@@ -500,6 +500,31 @@ export interface AchievementProgressResponse {
   totalAvailable: number;
 }
 
+export interface PlatformStatsResponse {
+  success: boolean;
+  pastesCreated: string;
+  dailyUsers: string;
+  languages: number;
+  uptime: number;
+  linksToday: number;
+  viewsToday: string;
+  totalShares: string;
+  lastUpdated: string;
+  error?: string;
+}
+
+export interface PlatformInsightsResponse {
+  success: boolean;
+  topLanguages: Array<{
+    name: string;
+    count: number;
+  }>;
+  weeklyTrend: Record<string, number>;
+  totalLanguages: number;
+  lastUpdated: string;
+  error?: string;
+}
+
 export const submitGameScore = async (
   scoreData: SubmitGameScoreRequest
 ): Promise<SubmitGameScoreResponse> => {
@@ -609,6 +634,53 @@ export const getAchievementProgress =
         error instanceof Error
           ? error.message
           : "Failed to retrieve achievement progress";
+      throw new Error(errorMessage);
+    }
+  };
+
+export const getPlatformStats = async (): Promise<PlatformStatsResponse> => {
+  try {
+    const getPlatformStatsFn = httpsCallable(functions, "get_platform_stats");
+    const result = await getPlatformStatsFn({});
+    return result.data as PlatformStatsResponse;
+  } catch (error: unknown) {
+    console.error("Error getting platform stats:", error);
+
+    // Return fallback data if API fails
+    return {
+      success: false,
+      pastesCreated: "1M+",
+      dailyUsers: "50K+",
+      languages: 100,
+      uptime: 99.9,
+      linksToday: 158,
+      viewsToday: "12.3K",
+      totalShares: "4.7M+",
+      lastUpdated: new Date().toISOString(),
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch platform stats",
+    };
+  }
+};
+
+export const getPlatformInsights =
+  async (): Promise<PlatformInsightsResponse> => {
+    try {
+      const getPlatformInsightsFn = httpsCallable(
+        functions,
+        "get_platform_insights"
+      );
+      const result = await getPlatformInsightsFn({});
+      return result.data as PlatformInsightsResponse;
+    } catch (error: unknown) {
+      console.error("Error getting platform insights:", error);
+
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to retrieve platform insights";
       throw new Error(errorMessage);
     }
   };
