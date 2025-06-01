@@ -30,6 +30,12 @@ import {
   RefreshCw,
   ChevronLeft,
   ChevronRight,
+  Crown,
+  Zap,
+  TrendingUp,
+  Target,
+  Gift,
+  Timer,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
@@ -38,6 +44,7 @@ import {
   type UserSnippet,
   type DailyUsageResponse,
 } from "@/lib/api";
+import AdBanner from "@/components/AdBanner";
 
 interface DashboardProps {
   view?: "links" | "settings";
@@ -152,114 +159,260 @@ const Dashboard: React.FC<DashboardProps> = ({ view = "links" }) => {
           </Button>
         </div>
 
-        {/* Daily Usage Stats */}
-        {dailyUsage && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <Card>
+        {/* Stats Overview with psychological elements */}
+        {profile && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {/* Available Links - with urgency for free users */}
+            <Card
+              className={
+                profile.subscription?.plan
+                  ? "border-green-200 dark:border-green-800"
+                  : "border-orange-200 dark:border-orange-800"
+              }
+            >
               <CardHeader className="pb-2">
-                <CardTitle className="text-lg">
-                  {t("usage.todayUsage")}
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Link className="h-5 w-5" />
+                  Available Links
+                  {!profile.subscription?.plan &&
+                    profile.availableLinks <= 3 && (
+                      <Badge variant="destructive" className="text-xs">
+                        Low!
+                      </Badge>
+                    )}
                 </CardTitle>
                 <CardDescription>
-                  {t(`usage.userType.${dailyUsage.userType}`)}
+                  {profile.subscription?.plan
+                    ? "Unlimited usage"
+                    : "Daily limit resets in 24h"}
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-2xl font-bold">
-                      {dailyUsage.dailyLimit === -1
-                        ? t("usage.unlimited")
-                        : `${dailyUsage.usedToday}/${dailyUsage.dailyLimit}`}
-                    </span>
-                    <Badge
-                      variant={
-                        dailyUsage.userType === "premium"
-                          ? "default"
-                          : "secondary"
-                      }
-                    >
-                      {dailyUsage.userType}
-                    </Badge>
-                  </div>
-                  {dailyUsage.dailyLimit !== -1 && (
-                    <Progress value={getUsagePercentage()} className="h-2" />
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg">
-                  {t("usage.availableLinks")}
-                </CardTitle>
-                <CardDescription>Your remaining quota</CardDescription>
-              </CardHeader>
-              <CardContent>
                 <div className="text-3xl font-bold">
-                  {dailyUsage.availableLinks === -1
-                    ? t("usage.unlimited")
-                    : dailyUsage.availableLinks}
-                  {dailyUsage.availableLinks !== -1 && (
+                  {profile.subscription?.plan ? "∞" : profile.availableLinks}
+                  {!profile.subscription?.plan && (
                     <span className="text-lg text-muted-foreground ml-2">
-                      links
+                      / 10 today
                     </span>
                   )}
                 </div>
+
+                {/* Progress bar for free users */}
+                {!profile.subscription?.plan && (
+                  <div className="mt-2">
+                    <Progress
+                      value={(profile.availableLinks / 10) * 100}
+                      className="h-2"
+                    />
+                    <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                      <span>Used: {10 - profile.availableLinks}</span>
+                      <span>Remaining: {profile.availableLinks}</span>
+                    </div>
+                  </div>
+                )}
               </CardContent>
-              <CardFooter>
-                <Button variant="outline" className="w-full">
-                  {t("usage.upgradeForMore")}
-                </Button>
-              </CardFooter>
+              {!profile.subscription?.plan && profile.availableLinks <= 3 && (
+                <CardFooter>
+                  <Button variant="outline" className="w-full" size="sm">
+                    <Crown className="mr-2 h-4 w-4" />
+                    Get Unlimited
+                  </Button>
+                </CardFooter>
+              )}
             </Card>
 
+            {/* Total Links Created - social proof */}
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-lg">
-                  {t("usage.totalCreated")}
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5" />
+                  Total Created
                 </CardTitle>
-                <CardDescription>Links created so far</CardDescription>
+                <CardDescription>Your productivity stats</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold">
-                  {dailyUsage.totalLinksCreated}
+                  {profile.totalLinksCreated}
                   <span className="text-lg text-muted-foreground ml-2">
                     links
                   </span>
                 </div>
+                {/* Achievement badges */}
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {profile.totalLinksCreated >= 100 && (
+                    <Badge variant="secondary" className="text-xs">
+                      💯 Century Maker
+                    </Badge>
+                  )}
+                  {profile.totalLinksCreated >= 50 && (
+                    <Badge variant="secondary" className="text-xs">
+                      🎯 Power User
+                    </Badge>
+                  )}
+                  {profile.totalLinksCreated >= 10 && (
+                    <Badge variant="secondary" className="text-xs">
+                      🚀 Regular
+                    </Badge>
+                  )}
+                </div>
               </CardContent>
-              <CardFooter>
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => setActiveTab("links")}
-                >
-                  {t("links.viewAll")}
-                </Button>
-              </CardFooter>
             </Card>
 
-            <Card>
+            {/* Game Points - enhanced engagement */}
+            <Card className="relative overflow-hidden">
               <CardHeader className="pb-2">
-                <CardTitle className="text-lg">Game Points</CardTitle>
-                <CardDescription>Play to earn more links</CardDescription>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Target className="h-5 w-5" />
+                  Game Points
+                  {(profile?.gamePoints || 0) > 1000 && (
+                    <Badge className="bg-gradient-to-r from-yellow-400 to-orange-500 text-black">
+                      🔥 Hot Streak!
+                    </Badge>
+                  )}
+                </CardTitle>
+                <CardDescription>
+                  Play to unlock premium features
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold">
-                  {profile?.gamePoints || 0}
+                  {(profile?.gamePoints || 0).toLocaleString()}
                   <span className="text-lg text-muted-foreground ml-2">
                     points
                   </span>
                 </div>
+
+                {/* Next unlock preview */}
+                {(() => {
+                  const nextUnlockThresholds = [
+                    500, 1000, 2000, 4000, 7000, 12000, 20000,
+                  ];
+                  const currentPoints = profile?.gamePoints || 0;
+                  const nextThreshold = nextUnlockThresholds.find(
+                    (threshold) => currentPoints < threshold
+                  );
+
+                  if (nextThreshold) {
+                    const progress = (currentPoints / nextThreshold) * 100;
+                    const remaining = nextThreshold - currentPoints;
+
+                    return (
+                      <div className="mt-2">
+                        <div className="flex justify-between text-xs mb-1">
+                          <span>Next unlock</span>
+                          <span>{remaining.toLocaleString()} more</span>
+                        </div>
+                        <Progress value={progress} className="h-2" />
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
               </CardContent>
               <CardFooter>
                 <Button variant="outline" className="w-full">
+                  <Zap className="mr-2 h-4 w-4" />
                   Play Game
                 </Button>
               </CardFooter>
+
+              {/* Animated background for high scorers */}
+              {(profile?.gamePoints || 0) > 5000 && (
+                <div className="absolute inset-0 bg-gradient-to-br from-yellow-50/50 to-orange-50/50 dark:from-yellow-950/20 dark:to-orange-950/20 pointer-events-none" />
+              )}
             </Card>
+
+            {/* Subscription Status - psychological framing */}
+            <Card
+              className={
+                profile.subscription?.plan
+                  ? "border-green-200 dark:border-green-800 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950"
+                  : "border-purple-200 dark:border-purple-800"
+              }
+            >
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  {profile.subscription?.plan ? (
+                    <>
+                      <Crown className="h-5 w-5 text-yellow-500" />
+                      Premium Active
+                    </>
+                  ) : (
+                    <>
+                      <Gift className="h-5 w-5" />
+                      Free Plan
+                    </>
+                  )}
+                </CardTitle>
+                <CardDescription>
+                  {profile.subscription?.plan
+                    ? "Enjoying unlimited features"
+                    : "Upgrade for unlimited access"}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {profile.subscription?.plan ? (
+                  <div>
+                    <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                      ✅ Premium
+                    </div>
+                    <div className="text-sm text-green-600 dark:text-green-400 mt-1">
+                      All features unlocked
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="text-2xl font-bold">
+                      $4.99
+                      <span className="text-lg text-muted-foreground">
+                        /month
+                      </span>
+                    </div>
+                    <div className="text-sm text-muted-foreground mt-1">
+                      Join{" "}
+                      {Math.floor(
+                        Math.random() * 5000 + 10000
+                      ).toLocaleString()}{" "}
+                      premium users
+                    </div>
+
+                    {/* Limited time offer psychological trigger */}
+                    <div className="mt-2 p-2 bg-orange-100 dark:bg-orange-900 rounded text-xs">
+                      <div className="flex items-center gap-1">
+                        <Timer className="h-3 w-3" />
+                        <span className="font-semibold">
+                          Limited Time: 30% Off First Month!
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+              <CardFooter>
+                {profile.subscription?.plan ? (
+                  <Button variant="outline" className="w-full">
+                    <Settings className="mr-2 h-4 w-4" />
+                    Manage Subscription
+                  </Button>
+                ) : (
+                  <Button className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600">
+                    <Crown className="mr-2 h-4 w-4" />
+                    Upgrade Now
+                  </Button>
+                )}
+              </CardFooter>
+            </Card>
+          </div>
+        )}
+
+        {/* Strategic ad placement for free users */}
+        {!profile?.subscription?.plan && (
+          <div className="mb-8">
+            <AdBanner
+              position="banner"
+              size="large"
+              className="max-w-4xl mx-auto"
+            />
           </div>
         )}
 
@@ -271,180 +424,259 @@ const Dashboard: React.FC<DashboardProps> = ({ view = "links" }) => {
           <TabsList className="mb-6">
             <TabsTrigger value="links">
               <Link className="mr-2 h-4 w-4" /> {t("links.title")}
+              {!profile?.subscription?.plan &&
+                profile &&
+                profile.availableLinks <= 3 && (
+                  <Badge variant="destructive" className="ml-2 text-xs">
+                    {profile.availableLinks} left
+                  </Badge>
+                )}
             </TabsTrigger>
             <TabsTrigger value="settings">
               <Settings className="mr-2 h-4 w-4" /> Settings
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="links">
-            <Card>
-              <CardHeader>
-                <CardTitle>{t("links.title")}</CardTitle>
-                <CardDescription>{t("links.description")}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {/* Loading State */}
-                {loading && (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                    <span className="text-muted-foreground">
-                      {t("links.loading")}
-                    </span>
-                  </div>
-                )}
-
-                {/* Error State */}
-                {error && (
-                  <div className="border border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950 rounded-lg p-4">
-                    <div className="flex items-center space-x-2 text-red-600 dark:text-red-400">
-                      <AlertCircle className="h-4 w-4" />
-                      <span className="text-sm">{t("links.error")}</span>
-                    </div>
-                    <p className="text-sm text-red-600 dark:text-red-400 mt-1">
-                      {error}
-                    </p>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="mt-3"
-                      onClick={() => fetchData(currentPage)}
-                    >
-                      <RefreshCw className="h-3 w-3 mr-1" />
-                      {t("links.retry")}
-                    </Button>
-                  </div>
-                )}
-
-                {/* Empty State */}
-                {!loading && !error && snippets.length === 0 && (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <div className="text-sm">{t("links.noLinks")}</div>
-                    <Button
-                      variant="outline"
-                      className="mt-3"
-                      onClick={() => navigate("/")}
-                    >
-                      {t("links.createFirst")}
-                    </Button>
-                  </div>
-                )}
-
-                {/* Snippets List */}
-                {!loading && !error && snippets.length > 0 && (
-                  <div className="border rounded-md divide-y">
-                    {snippets.map((snippet) => (
-                      <div key={snippet.id} className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-medium truncate">
-                              {snippet.title}
-                            </h3>
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1 flex-wrap">
-                              <Badge variant="outline" className="text-xs">
-                                {snippet.language}
-                              </Badge>
-                              <span className="flex items-center">
-                                <Eye size={12} className="mr-1" />
-                                {snippet.viewCount}{" "}
-                                {snippet.viewCount === 1
-                                  ? t("links.view")
-                                  : t("links.views")}
-                              </span>
-                              <span className="flex items-center">
-                                <Calendar size={12} className="mr-1" />
-                                {formatDate(snippet.createdAt)}
-                              </span>
-                              {snippet.isConfidential && (
-                                <Badge variant="secondary" className="text-xs">
-                                  <Shield size={8} className="mr-1" />
-                                  {t("links.confidential")}
-                                </Badge>
-                              )}
-                              {isExpired(snippet.expiresAt) && (
-                                <Badge
-                                  variant="destructive"
-                                  className="text-xs"
-                                >
-                                  <Clock size={8} className="mr-1" />
-                                  {t("links.expired")}
-                                </Badge>
-                              )}
-                            </div>
-                          </div>
+          <TabsContent value="links" className="space-y-6">
+            {/* Free user limitations with upgrade prompts */}
+            {!profile?.subscription?.plan &&
+              profile &&
+              profile.availableLinks <= 1 && (
+                <Card className="border-orange-200 dark:border-orange-800 bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-950 dark:to-red-950">
+                  <CardHeader>
+                    <CardTitle className="text-orange-700 dark:text-orange-300 flex items-center gap-2">
+                      <Timer className="h-5 w-5" />
+                      Almost at your daily limit!
+                    </CardTitle>
+                    <CardDescription>
+                      You have {profile.availableLinks} paste
+                      {profile.availableLinks === 1 ? "" : "s"} remaining today.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div>
+                        <strong>Options to continue:</strong>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="p-3 border rounded-lg">
+                          <h4 className="font-semibold mb-1">🎮 Play Game</h4>
+                          <p className="text-sm text-muted-foreground mb-2">
+                            Earn {10 - profile.availableLinks} more pastes by
+                            playing our fun game!
+                          </p>
                           <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 ml-2"
-                            asChild
+                            size="sm"
+                            variant="outline"
+                            className="w-full"
                           >
-                            <a
-                              href={`https://pastesharecopy.com/${snippet.shortUrl}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              <ExternalLink size={14} />
-                              <span className="sr-only">
-                                {t("navigation.openLink")}
-                              </span>
-                            </a>
+                            Start Gaming
                           </Button>
                         </div>
-                        <div className="mt-2 text-xs bg-muted p-2 rounded font-mono truncate">
-                          pastesharecopy.com/{snippet.shortUrl}
+                        <div className="p-3 border rounded-lg bg-purple-50 dark:bg-purple-950">
+                          <h4 className="font-semibold mb-1">👑 Go Premium</h4>
+                          <p className="text-sm text-muted-foreground mb-2">
+                            Get unlimited pastes + ad-free experience
+                          </p>
+                          <Button
+                            size="sm"
+                            className="w-full bg-gradient-to-r from-purple-500 to-pink-500"
+                          >
+                            Upgrade $4.99/mo
+                          </Button>
                         </div>
-                        {snippet.expiresAt && !isExpired(snippet.expiresAt) && (
-                          <div className="mt-2 text-xs text-muted-foreground">
-                            {t("links.expiresOn")}:{" "}
-                            {formatDate(snippet.expiresAt)}
-                          </div>
-                        )}
                       </div>
-                    ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+            {activeTab === "links" && (
+              <div className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{t("links.title")}</CardTitle>
+                    <CardDescription>{t("links.description")}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {/* Loading State */}
+                    {loading && (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                        <span className="text-muted-foreground">
+                          {t("links.loading")}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Error State */}
+                    {error && (
+                      <div className="border border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950 rounded-lg p-4">
+                        <div className="flex items-center space-x-2 text-red-600 dark:text-red-400">
+                          <AlertCircle className="h-4 w-4" />
+                          <span className="text-sm">{t("links.error")}</span>
+                        </div>
+                        <p className="text-sm text-red-600 dark:text-red-400 mt-1">
+                          {error}
+                        </p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mt-3"
+                          onClick={() => fetchData(currentPage)}
+                        >
+                          <RefreshCw className="h-3 w-3 mr-1" />
+                          {t("links.retry")}
+                        </Button>
+                      </div>
+                    )}
+
+                    {/* Empty State */}
+                    {!loading && !error && snippets.length === 0 && (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <div className="text-sm">{t("links.noLinks")}</div>
+                        <Button
+                          variant="outline"
+                          className="mt-3"
+                          onClick={() => navigate("/")}
+                        >
+                          {t("links.createFirst")}
+                        </Button>
+                      </div>
+                    )}
+
+                    {/* Snippets List */}
+                    {!loading && !error && snippets.length > 0 && (
+                      <div className="border rounded-md divide-y">
+                        {snippets.map((snippet) => (
+                          <div key={snippet.id} className="p-4">
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1 min-w-0">
+                                <h3 className="font-medium truncate">
+                                  {snippet.title}
+                                </h3>
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1 flex-wrap">
+                                  <Badge variant="outline" className="text-xs">
+                                    {snippet.language}
+                                  </Badge>
+                                  <span className="flex items-center">
+                                    <Eye size={12} className="mr-1" />
+                                    {snippet.viewCount}{" "}
+                                    {snippet.viewCount === 1
+                                      ? t("links.view")
+                                      : t("links.views")}
+                                  </span>
+                                  <span className="flex items-center">
+                                    <Calendar size={12} className="mr-1" />
+                                    {formatDate(snippet.createdAt)}
+                                  </span>
+                                  {snippet.isConfidential && (
+                                    <Badge
+                                      variant="secondary"
+                                      className="text-xs"
+                                    >
+                                      <Shield size={8} className="mr-1" />
+                                      {t("links.confidential")}
+                                    </Badge>
+                                  )}
+                                  {isExpired(snippet.expiresAt) && (
+                                    <Badge
+                                      variant="destructive"
+                                      className="text-xs"
+                                    >
+                                      <Clock size={8} className="mr-1" />
+                                      {t("links.expired")}
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 ml-2"
+                                asChild
+                              >
+                                <a
+                                  href={`https://pastesharecopy.com/${snippet.shortUrl}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  <ExternalLink size={14} />
+                                  <span className="sr-only">
+                                    {t("navigation.openLink")}
+                                  </span>
+                                </a>
+                              </Button>
+                            </div>
+                            <div className="mt-2 text-xs bg-muted p-2 rounded font-mono truncate">
+                              pastesharecopy.com/{snippet.shortUrl}
+                            </div>
+                            {snippet.expiresAt &&
+                              !isExpired(snippet.expiresAt) && (
+                                <div className="mt-2 text-xs text-muted-foreground">
+                                  {t("links.expiresOn")}:{" "}
+                                  {formatDate(snippet.expiresAt)}
+                                </div>
+                              )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+
+                  {/* Pagination and View All */}
+                  {!loading && !error && snippets.length > 0 && (
+                    <CardFooter className="flex flex-col space-y-4">
+                      {/* Pagination */}
+                      {totalPages > 1 && (
+                        <div className="flex items-center justify-between w-full">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handlePageChange(currentPage - 1)}
+                            disabled={currentPage === 1}
+                          >
+                            <ChevronLeft className="h-3 w-3 mr-1" />
+                            {t("links.pagination.previous")}
+                          </Button>
+
+                          <span className="text-xs text-muted-foreground">
+                            {t("links.pagination.page")} {currentPage}{" "}
+                            {t("links.pagination.of")} {totalPages}
+                          </span>
+
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handlePageChange(currentPage + 1)}
+                            disabled={currentPage === totalPages}
+                          >
+                            {t("links.pagination.next")}
+                            <ChevronRight className="h-3 w-3 ml-1" />
+                          </Button>
+                        </div>
+                      )}
+
+                      {/* Total count and view all */}
+                      <div className="text-center text-xs text-muted-foreground">
+                        Showing {snippets.length} of {totalCount} total links
+                      </div>
+                    </CardFooter>
+                  )}
+                </Card>
+
+                {/* Strategic ad after content for free users */}
+                {!profile?.subscription?.plan && (
+                  <div className="flex justify-center py-6">
+                    <AdBanner
+                      position="banner"
+                      size="medium"
+                      className="max-w-2xl"
+                    />
                   </div>
                 )}
-              </CardContent>
-
-              {/* Pagination and View All */}
-              {!loading && !error && snippets.length > 0 && (
-                <CardFooter className="flex flex-col space-y-4">
-                  {/* Pagination */}
-                  {totalPages > 1 && (
-                    <div className="flex items-center justify-between w-full">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handlePageChange(currentPage - 1)}
-                        disabled={currentPage === 1}
-                      >
-                        <ChevronLeft className="h-3 w-3 mr-1" />
-                        {t("links.pagination.previous")}
-                      </Button>
-
-                      <span className="text-xs text-muted-foreground">
-                        {t("links.pagination.page")} {currentPage}{" "}
-                        {t("links.pagination.of")} {totalPages}
-                      </span>
-
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handlePageChange(currentPage + 1)}
-                        disabled={currentPage === totalPages}
-                      >
-                        {t("links.pagination.next")}
-                        <ChevronRight className="h-3 w-3 ml-1" />
-                      </Button>
-                    </div>
-                  )}
-
-                  {/* Total count and view all */}
-                  <div className="text-center text-xs text-muted-foreground">
-                    Showing {snippets.length} of {totalCount} total links
-                  </div>
-                </CardFooter>
-              )}
-            </Card>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="settings">

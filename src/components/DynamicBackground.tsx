@@ -1,5 +1,13 @@
 import React, { useRef, useEffect, useState } from "react";
 import { useTheme } from "@/hooks/useTheme";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "./ui/dialog";
+import { useToast } from "@/hooks/use-toast";
 
 // Add pulsing animation for the tutorial
 const pulseKeyframes = `
@@ -34,6 +42,7 @@ interface Blob {
   isCollectible?: boolean;
   points?: number;
   pulseRate?: number;
+  collectibleType?: string;
 }
 
 interface GameState {
@@ -64,6 +73,7 @@ const DynamicBackground: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { resolvedTheme } = useTheme();
   const isDarkMode = resolvedTheme === "dark";
+  const { toast } = useToast();
 
   // State for game elements
   const [showScore, setShowScore] = useState(false);
@@ -87,6 +97,73 @@ const DynamicBackground: React.FC = () => {
     comboTimer: 0,
   });
   const collectibleTimerRef = useRef(0);
+
+  // Add state for the game rules dialog
+  const [showGameRules, setShowGameRules] = useState(false);
+
+  // Gamified point requirements with psychological optimization
+  const getUnlockRequirements = () => {
+    const requirements = [];
+
+    // Psychology-driven progression: Start easy, then exponential difficulty
+    // Simplified to only offer enhanced daily limits
+    // UPDATED: Much more challenging progression starting at 2000 points
+    const progressionMap = [
+      { points: 2000, extraLinks: 1 }, // 11 total daily pastes - First milestone
+      { points: 5000, extraLinks: 2 }, // 12 total daily pastes - Commitment test
+      { points: 12000, extraLinks: 3 }, // 13 total daily pastes - Serious engagement
+      { points: 25000, extraLinks: 5 }, // 15 total daily pastes - Dedicated user
+      { points: 45000, extraLinks: 7 }, // 17 total daily pastes - Power user
+      { points: 75000, extraLinks: 10 }, // 20 total daily pastes - Expert level
+      { points: 120000, extraLinks: 15 }, // 25 total daily pastes - Master tier
+      { points: 180000, extraLinks: 20 }, // 30 total daily pastes - Elite status
+      { points: 260000, extraLinks: 30 }, // 40 total daily pastes - Legend tier
+      { points: 400000, extraLinks: 50 }, // 60 total daily pastes - Ultimate mastery
+    ];
+
+    progressionMap.forEach((tier, index) => {
+      const tierNum = index + 1;
+      const totalLinks = 10 + tier.extraLinks; // Base 10 + extra
+
+      let psychologyType;
+      let urgency = "";
+
+      if (tierNum <= 2) {
+        // Quick wins to hook users
+        psychologyType = "🚀 Quick Win";
+        urgency = "Easy to achieve!";
+      } else if (tierNum <= 4) {
+        // Building momentum
+        psychologyType = "🎯 Momentum Builder";
+        urgency = "Keep the streak going!";
+      } else if (tierNum <= 6) {
+        // Significant progress
+        psychologyType = "💎 Progress Maker";
+        urgency = "Significant upgrade!";
+      } else if (tierNum <= 8) {
+        // Power user territory
+        psychologyType = "⚡ Power User";
+        urgency = "You're getting serious!";
+      } else {
+        // Elite achievements
+        psychologyType = "🏆 Elite Achievement";
+        urgency = "Ultimate gaming mastery!";
+      }
+
+      requirements.push({
+        tier: tierNum,
+        points: tier.points,
+        reward: `${totalLinks} daily pastes (+${tier.extraLinks} bonus)`,
+        psychologyType: psychologyType,
+        urgency: urgency,
+        extraLinks: tier.extraLinks,
+      });
+    });
+
+    return requirements;
+  };
+
+  const unlockRequirements = getUnlockRequirements();
 
   // Create noise function for organic movement
   const createNoise = () => {
@@ -290,42 +367,74 @@ const DynamicBackground: React.FC = () => {
     spawnCollectible();
   };
 
-  // Create special collectible blobs that users can click to collect
+  // Enhanced collectible spawning with psychological hooks
   const spawnCollectible = () => {
     const now = Date.now();
 
-    // Don't spawn collectibles too frequently
-    if (blobsRef.current.filter((b) => b.isCollectible).length >= 3) return;
+    // Don't spawn collectibles too frequently (create anticipation)
+    if (blobsRef.current.filter((b) => b.isCollectible).length >= 2) return;
 
     const colors = getThemeColors();
 
-    // Create a special collectible blob with different visual properties
+    // Variable reward schedule - sometimes spawn rare high-value collectibles
+    const isRareCollectible = Math.random() < 0.15; // 15% chance for rare
+    const isSuperRare = Math.random() < 0.03; // 3% chance for super rare
+
+    let collectibleType = "common";
+    let basePoints = Math.floor(Math.random() * 20) + 10; // 10-30 points
+    let collectibleColor = isDarkMode
+      ? `hsla(55, 100%, 70%, 1)`
+      : `hsla(30, 100%, 60%, 1)`;
+    let size = Math.random() * 20 + 30;
+
+    if (isSuperRare) {
+      collectibleType = "legendary";
+      basePoints = Math.floor(Math.random() * 100) + 100; // 100-200 points
+      collectibleColor = isDarkMode
+        ? `hsla(300, 100%, 80%, 1)`
+        : `hsla(320, 100%, 60%, 1)`; // Purple
+      size = Math.random() * 40 + 50;
+    } else if (isRareCollectible) {
+      collectibleType = "rare";
+      basePoints = Math.floor(Math.random() * 50) + 40; // 40-90 points
+      collectibleColor = isDarkMode
+        ? `hsla(0, 100%, 70%, 1)`
+        : `hsla(15, 100%, 60%, 1)`; // Red
+      size = Math.random() * 30 + 40;
+    }
+
     const collectibleBlob: Blob = {
       x: Math.random() * (window.innerWidth - 200) + 100,
       y: Math.random() * (window.innerHeight - 200) + 100,
-      radius: Math.random() * 30 + 40, // Smaller than regular blobs
-      velX: (Math.random() - 0.5) * 0.8, // Moves a bit faster
+      radius: size,
+      velX: (Math.random() - 0.5) * 0.8,
       velY: (Math.random() - 0.5) * 0.8,
       growth: 0,
-      color: isDarkMode
-        ? `hsla(55, 100%, 70%, 1)` // Golden in dark mode
-        : `hsla(30, 100%, 60%, 1)`, // Orange in light mode
+      color: collectibleColor,
       opacity: 0.9,
-      hue: isDarkMode ? 55 : 30,
+      hue: isRareCollectible ? 300 : isDarkMode ? 55 : 30,
       seed: Math.random() * 1000,
       isCollectible: true,
-      points: Math.floor(Math.random() * 30) + 20, // Random points 20-50
-      pulseRate: 0.05 + Math.random() * 0.05, // Controls animation pulse
+      points: basePoints,
+      pulseRate: 0.05 + Math.random() * 0.05,
+      collectibleType: collectibleType,
     };
 
     blobsRef.current.push(collectibleBlob);
     gameStateRef.current.totalCollectibles++;
 
-    // Schedule next collectible spawn
+    // Variable interval spawning (unpredictable rewards increase addiction)
     clearTimeout(collectibleTimerRef.current);
+    const spawnDelay =
+      collectibleType === "legendary"
+        ? 8000 + Math.random() * 12000
+        : collectibleType === "rare"
+        ? 5000 + Math.random() * 8000
+        : 2000 + Math.random() * 4000;
+
     collectibleTimerRef.current = window.setTimeout(
       spawnCollectible,
-      3000 + Math.random() * 5000 // Spawn every 3-8 seconds
+      spawnDelay
     ) as unknown as number;
   };
 
@@ -397,7 +506,7 @@ const DynamicBackground: React.FC = () => {
     return false;
   };
 
-  // Collect a blob and update score
+  // Enhanced collection with psychological feedback
   const collectBlob = (blob: Blob) => {
     // Remove from array
     const index = blobsRef.current.indexOf(blob);
@@ -405,44 +514,103 @@ const DynamicBackground: React.FC = () => {
       blobsRef.current.splice(index, 1);
     }
 
-    // Update game state
+    // Update game state with enhanced rewards
     const now = Date.now();
     const gameState = gameStateRef.current;
 
-    // Update combo multiplier if collected in quick succession
-    if (now - gameState.lastScoreUpdate < 3000) {
-      gameState.comboMultiplier = Math.min(5, gameState.comboMultiplier + 0.5);
-      gameState.comboTimer = now; // Reset combo timer
+    // Enhanced combo system with diminishing returns to encourage sustained play
+    if (now - gameState.lastScoreUpdate < 2000) {
+      gameState.comboMultiplier = Math.min(10, gameState.comboMultiplier + 0.5);
+      gameState.comboTimer = now;
+    } else if (now - gameState.lastScoreUpdate < 5000) {
+      gameState.comboMultiplier = Math.max(1, gameState.comboMultiplier * 0.9);
     } else {
       gameState.comboMultiplier = 1;
     }
 
-    // Add points with multiplier
-    const points = Math.floor((blob.points || 10) * gameState.comboMultiplier);
+    // Rarity multipliers for psychological impact
+    let rarityMultiplier = 1;
+    if (blob.collectibleType === "rare") rarityMultiplier = 2;
+    if (blob.collectibleType === "legendary") rarityMultiplier = 5;
+
+    // Add points with multipliers
+    const points = Math.floor(
+      (blob.points || 10) * gameState.comboMultiplier * rarityMultiplier
+    );
     gameState.score += points;
     gameState.collectiblesFound++;
     gameState.lastScoreUpdate = now;
 
-    // Update high score
+    // Achievement notifications for psychological reinforcement
+    if (blob.collectibleType === "legendary") {
+      // Show special notification for legendary items
+      setTimeout(() => {
+        toast({
+          title: "🎉 LEGENDARY FIND!",
+          description: `You found a legendary orb worth ${points} points!`,
+          duration: 5000,
+        });
+      }, 100);
+    } else if (blob.collectibleType === "rare") {
+      setTimeout(() => {
+        toast({
+          title: "✨ Rare Discovery!",
+          description: `Rare orb collected! ${points} points earned!`,
+          duration: 3000,
+        });
+      }, 100);
+    }
+
+    // Check for milestone achievements
+    const currentMilestone = unlockRequirements.find(
+      (req) =>
+        gameState.score >= req.points && gameState.score - points < req.points
+    );
+
+    if (currentMilestone) {
+      setTimeout(() => {
+        toast({
+          title: `🏆 Achievement Unlocked!`,
+          description: `${currentMilestone.psychologyType} - Now get ${
+            10 + currentMilestone.extraLinks
+          } daily pastes!`,
+          duration: 6000,
+        });
+      }, 500);
+    }
+
+    // Update high score with celebration
     if (gameState.score > highScore) {
+      const isNewRecord = highScore > 0;
       setHighScore(gameState.score);
-      // Save to localStorage for persistence
       localStorage.setItem("blobGameHighScore", gameState.score.toString());
+
+      if (isNewRecord) {
+        setTimeout(() => {
+          toast({
+            title: "🔥 NEW HIGH SCORE!",
+            description: `You broke your personal record with ${gameState.score} points!`,
+            duration: 4000,
+          });
+        }, 200);
+      }
     }
 
     // Show score UI element
     setShowScore(true);
     setShowTutorial(false);
 
-    // Hide score after a delay
+    // Hide score after delay (but keep users engaged longer)
     setTimeout(() => {
-      if (Date.now() - gameState.lastScoreUpdate > 5000) {
+      if (Date.now() - gameState.lastScoreUpdate > 8000) {
         setShowScore(false);
       }
-    }, 5000);
+    }, 8000);
 
-    // Spawn a new collectible
-    setTimeout(spawnCollectible, Math.random() * 1000 + 500);
+    // Spawn next collectible with strategic delays
+    const spawnDelay =
+      gameState.comboMultiplier > 3 ? 300 : Math.random() * 1000 + 500;
+    setTimeout(spawnCollectible, spawnDelay);
   };
 
   const drawBlobs = () => {
@@ -807,92 +975,424 @@ const DynamicBackground: React.FC = () => {
         style={{ backgroundColor: "transparent" }}
       />
 
-      {/* Score display */}
+      {/* Enhanced Score display with psychological elements */}
       {showScore && (
         <div
-          className="fixed top-20 right-4 z-50 bg-opacity-80 px-4 py-2 rounded-lg transition-opacity duration-300"
+          className="fixed top-20 right-4 z-50 bg-opacity-90 px-4 py-3 rounded-xl transition-all duration-500 transform hover:scale-105 max-w-xs sm:max-w-sm"
           style={{
             backgroundColor: isDarkMode
-              ? "rgba(30, 20, 60, 0.7)"
-              : "rgba(220, 240, 255, 0.7)",
+              ? "rgba(30, 20, 60, 0.85)"
+              : "rgba(220, 240, 255, 0.85)",
             color: isDarkMode
               ? "rgba(220, 210, 255, 1)"
               : "rgba(30, 70, 120, 1)",
             boxShadow: isDarkMode
-              ? "0 0 20px rgba(120, 90, 255, 0.4)"
-              : "0 0 15px rgba(100, 180, 255, 0.5)",
-            backdropFilter: "blur(8px)",
+              ? "0 0 30px rgba(120, 90, 255, 0.6)"
+              : "0 0 25px rgba(100, 180, 255, 0.7)",
+            backdropFilter: "blur(12px)",
             border: isDarkMode
-              ? "1px solid rgba(149, 128, 255, 0.3)"
-              : "1px solid rgba(126, 166, 224, 0.3)",
+              ? "2px solid rgba(149, 128, 255, 0.4)"
+              : "2px solid rgba(126, 166, 224, 0.4)",
+            minWidth: "200px", // Adjusted minimum width
+            width: "fit-content", // Allow dynamic width
+            wordWrap: "break-word", // Ensure text wraps
+            overflow: "hidden", // Prevent any overflow
           }}
         >
-          <div className="text-2xl font-bold">
-            {gameStateRef.current.score} points
+          <div className="text-xl sm:text-2xl font-bold animate-pulse break-words leading-tight overflow-hidden">
+            {gameStateRef.current.score.toLocaleString()}
+            <span className="text-sm ml-1">pts</span>
           </div>
+
+          {/* Progress to next unlock */}
+          {(() => {
+            const nextUnlock = unlockRequirements.find(
+              (req) => gameStateRef.current.score < req.points
+            );
+
+            if (nextUnlock) {
+              const progress =
+                (gameStateRef.current.score / nextUnlock.points) * 100;
+              const remaining = nextUnlock.points - gameStateRef.current.score;
+
+              return (
+                <div className="mt-2">
+                  <div className="flex justify-between text-xs mb-1 gap-2">
+                    <span className="truncate flex-shrink">
+                      {nextUnlock.psychologyType}
+                    </span>
+                    <span className="text-right flex-shrink-0 font-medium">
+                      {remaining.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-300 dark:bg-gray-700 rounded-full h-1.5">
+                    <div
+                      className="bg-gradient-to-r from-yellow-400 to-orange-500 h-1.5 rounded-full transition-all duration-300"
+                      style={{ width: `${Math.min(progress, 100)}%` }}
+                    ></div>
+                  </div>
+                  <div className="text-xs mt-1 opacity-80 truncate">
+                    Next: +{nextUnlock.extraLinks} daily pastes
+                  </div>
+                </div>
+              );
+            }
+            return null;
+          })()}
+
           {highScore > 0 && (
             <div
-              className="text-sm text-right"
+              className="text-xs text-right mt-2 break-words"
               style={{
                 color: isDarkMode
                   ? "rgba(180, 160, 255, 1)"
                   : "rgba(80, 130, 190, 1)",
               }}
             >
-              Best: {highScore}
+              🏆 Best: {highScore.toLocaleString()}
             </div>
           )}
-          <div className="text-sm opacity-80">
+
+          <div className="text-xs opacity-90 mt-1">
             {gameStateRef.current.collectiblesFound} /{" "}
             {gameStateRef.current.totalCollectibles} collected
           </div>
+
           {gameStateRef.current.comboMultiplier > 1 && (
             <div
-              className="text-sm font-bold mt-1"
+              className="text-xs font-bold mt-2 animate-bounce"
               style={{
                 color: isDarkMode
                   ? "rgba(255, 220, 100, 1)"
                   : "rgba(255, 140, 0, 1)",
               }}
             >
-              {gameStateRef.current.comboMultiplier.toFixed(1)}x Combo!
+              🔥 {gameStateRef.current.comboMultiplier.toFixed(1)}x Combo!
             </div>
           )}
+
+          {/* Motivational messages */}
+          {(() => {
+            const score = gameStateRef.current.score;
+            if (score > 50000)
+              return (
+                <div className="text-xs mt-1 text-center">🌟 Elite Gamer!</div>
+              );
+            if (score > 20000)
+              return (
+                <div className="text-xs mt-1 text-center">🚀 Power User!</div>
+              );
+            if (score > 10000)
+              return (
+                <div className="text-xs mt-1 text-center">
+                  💪 Getting Strong!
+                </div>
+              );
+            if (score > 5000)
+              return (
+                <div className="text-xs mt-1 text-center">
+                  ⭐ Great Progress!
+                </div>
+              );
+            if (score > 1000)
+              return (
+                <div className="text-xs mt-1 text-center">🎯 Keep Going!</div>
+              );
+            return null;
+          })()}
         </div>
       )}
 
-      {/* Tutorial tooltip */}
-      {showTutorial && (
+      {/* Game rules icon - always visible in bottom right */}
+      <Dialog open={showGameRules} onOpenChange={setShowGameRules}>
+        <DialogTrigger asChild>
+          <div
+            className="fixed bottom-6 right-6 z-50 w-12 h-12 rounded-full cursor-pointer hover:scale-110 transition-all duration-200 flex items-center justify-center"
+            style={{
+              backgroundColor: isDarkMode
+                ? "rgba(120, 90, 255, 0.9)"
+                : "rgba(100, 180, 255, 0.9)",
+              boxShadow: isDarkMode
+                ? "0 0 20px rgba(120, 90, 255, 0.6)"
+                : "0 0 15px rgba(100, 180, 255, 0.6)",
+              backdropFilter: "blur(8px)",
+              border: isDarkMode
+                ? "2px solid rgba(149, 128, 255, 0.5)"
+                : "2px solid rgba(126, 166, 224, 0.5)",
+              animation: "pulse 3s infinite",
+            }}
+            title="Click for game rules & unlock rewards"
+          >
+            <span className="text-white text-lg font-bold">🎮</span>
+          </div>
+        </DialogTrigger>
+
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-center mb-4">
+              🎮 Game Rules & Unlock System
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-6 px-1">
+            {/* Basic Rules */}
+            <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 p-4 rounded-lg">
+              <h3 className="text-lg font-semibold mb-3 text-blue-700 dark:text-blue-300">
+                🎯 How to Play
+              </h3>
+              <ul className="space-y-2 text-sm">
+                <li className="flex items-start gap-2">
+                  <span className="text-yellow-500 flex-shrink-0">✨</span>
+                  <span className="break-words">
+                    Click on glowing golden orbs to collect them and earn points
+                  </span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-500 flex-shrink-0">⚡</span>
+                  <span className="break-words">
+                    Collect orbs quickly to build up your combo multiplier
+                  </span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-red-500 flex-shrink-0">⏰</span>
+                  <span className="break-words">
+                    Combo multiplier decreases over time - stay active!
+                  </span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-purple-500 flex-shrink-0">🏆</span>
+                  <span className="break-words">
+                    Earn points to unlock amazing rewards and features
+                  </span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Current Progress */}
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 p-4 rounded-lg">
+              <h3 className="text-lg font-semibold mb-3 text-green-700 dark:text-green-300">
+                📊 Your Progress
+              </h3>
+              <div className="flex justify-between items-center mb-2 gap-2">
+                <span className="text-sm font-medium flex-shrink-0">
+                  Current Score:
+                </span>
+                <span className="text-xl font-bold text-emerald-600 dark:text-emerald-400 break-words text-right">
+                  {gameStateRef.current.score.toLocaleString()} points
+                </span>
+              </div>
+              <div className="flex justify-between items-center gap-2">
+                <span className="text-sm font-medium flex-shrink-0">
+                  High Score:
+                </span>
+                <span className="text-lg font-semibold text-emerald-600 dark:text-emerald-400 break-words text-right">
+                  {highScore.toLocaleString()} points
+                </span>
+              </div>
+            </div>
+
+            {/* Enhanced Unlock Requirements with psychology */}
+            <div className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-950 dark:to-orange-950 p-4 rounded-lg">
+              <h3 className="text-lg font-semibold mb-4 text-orange-700 dark:text-orange-300">
+                🎯 Daily Paste Limit Unlocks
+              </h3>
+              <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
+                {unlockRequirements.map((req, index) => {
+                  const isUnlocked = gameStateRef.current.score >= req.points;
+                  const isNext =
+                    !isUnlocked &&
+                    (index === 0 ||
+                      gameStateRef.current.score >=
+                        unlockRequirements[index - 1].points);
+                  const progress = isNext
+                    ? (gameStateRef.current.score / req.points) * 100
+                    : 0;
+
+                  return (
+                    <div
+                      key={req.tier}
+                      className={`p-3 rounded-lg border-2 transition-all duration-300 overflow-hidden ${
+                        isUnlocked
+                          ? "bg-green-100 dark:bg-green-900 border-green-300 dark:border-green-600 shadow-md"
+                          : isNext
+                          ? "bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-900 dark:to-orange-900 border-yellow-400 dark:border-yellow-500 ring-2 ring-yellow-300 dark:ring-yellow-600 shadow-xl border-solid"
+                          : "bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600 opacity-70"
+                      }`}
+                    >
+                      <div className="flex justify-between items-start mb-2 gap-2">
+                        <div className="flex-1 min-w-0">
+                          <span
+                            className={`font-semibold text-sm break-words ${
+                              isNext
+                                ? "text-orange-700 dark:text-yellow-300"
+                                : ""
+                            }`}
+                          >
+                            {isUnlocked ? "✅" : isNext ? "🎯" : "🔒"}
+                            {req.psychologyType}
+                          </span>
+                          <div
+                            className={`text-xs mt-1 break-words ${
+                              isNext
+                                ? "text-orange-600 dark:text-yellow-400"
+                                : "text-gray-600 dark:text-gray-400"
+                            }`}
+                          >
+                            {req.urgency}
+                          </div>
+                        </div>
+                        <span
+                          className={`text-sm font-bold flex-shrink-0 ${
+                            isUnlocked
+                              ? "text-green-600 dark:text-green-400"
+                              : isNext
+                              ? "text-orange-700 dark:text-yellow-300"
+                              : "text-gray-500"
+                          }`}
+                        >
+                          {req.points.toLocaleString()}
+                        </span>
+                      </div>
+
+                      <div
+                        className={`text-sm font-medium mb-1 break-words ${
+                          isNext
+                            ? "text-orange-800 dark:text-yellow-200"
+                            : "text-gray-700 dark:text-gray-300"
+                        }`}
+                      >
+                        {req.reward}
+                      </div>
+
+                      {isNext && (
+                        <div className="mt-2">
+                          <div className="flex justify-between text-xs mb-1 gap-2">
+                            <span className="flex-shrink-0">Progress</span>
+                            <span className="break-words text-right">
+                              {(
+                                req.points - gameStateRef.current.score
+                              ).toLocaleString()}{" "}
+                              more needed
+                            </span>
+                          </div>
+                          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+                            <div
+                              className="bg-gradient-to-r from-yellow-400 to-orange-500 h-2 rounded-full transition-all duration-500"
+                              style={{ width: `${Math.min(progress, 100)}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Premium upsell at bottom */}
+              <div className="mt-4 p-4 bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900 dark:to-pink-900 rounded-lg border-2 border-purple-200 dark:border-purple-700 overflow-hidden">
+                <div className="text-center">
+                  <h4 className="font-semibold text-purple-700 dark:text-purple-300 mb-2 break-words">
+                    👑 Want Unlimited Pastes?
+                  </h4>
+                  <p className="text-xs text-purple-600 dark:text-purple-400 mb-3 break-words">
+                    Skip the gaming and get unlimited daily pastes + no ads
+                    instantly!
+                  </p>
+                  <button className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-2 rounded-full text-xs font-semibold hover:scale-105 transition-transform break-words">
+                    Upgrade Now - Only $4.99/month
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Enhanced Pro Tips with psychological triggers */}
+            <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 p-4 rounded-lg">
+              <h3 className="text-lg font-semibold mb-3 text-purple-700 dark:text-purple-300">
+                🧠 Gaming Tips & Strategy
+              </h3>
+              <ul className="space-y-2 text-sm">
+                <li className="flex items-start gap-2">
+                  <span className="text-purple-500 flex-shrink-0">⚡</span>
+                  <span className="break-words">
+                    <strong>Combo System:</strong> Quick consecutive clicks
+                    build multipliers up to 10x!
+                  </span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-pink-500 flex-shrink-0">🎰</span>
+                  <span className="break-words">
+                    <strong>Rare Orbs:</strong> Golden (common), Red (rare 2x),
+                    Purple (legendary 5x)
+                  </span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-indigo-500 flex-shrink-0">🎯</span>
+                  <span className="break-words">
+                    <strong>Daily Limits:</strong> Earn more paste limits
+                    through consistent play
+                  </span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-cyan-500 flex-shrink-0">🏆</span>
+                  <span className="break-words">
+                    <strong>Progressive Rewards:</strong> Each tier unlocks
+                    higher daily limits
+                  </span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-orange-500 flex-shrink-0">⏰</span>
+                  <span className="break-words">
+                    <strong>Stay Active:</strong> Combos reset after 3 seconds
+                    of inactivity
+                  </span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Enhanced Tutorial Message with Psychology */}
+      <div className="fixed bottom-4 right-4 z-40 max-w-xs sm:max-w-sm">
         <div
-          className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50 px-5 py-3 rounded-xl text-center"
+          className="group bg-opacity-90 px-3 py-2 sm:px-4 sm:py-3 rounded-xl shadow-lg cursor-pointer transition-all duration-300 transform hover:scale-105 border-2"
           style={{
             backgroundColor: isDarkMode
-              ? "rgba(30, 20, 60, 0.8)"
-              : "rgba(220, 240, 255, 0.8)",
+              ? "rgba(20, 25, 50, 0.85)"
+              : "rgba(240, 245, 255, 0.85)",
             color: isDarkMode
-              ? "rgba(220, 210, 255, 1)"
-              : "rgba(30, 70, 120, 1)",
-            boxShadow: isDarkMode
-              ? "0 0 20px rgba(120, 90, 255, 0.4)"
-              : "0 0 15px rgba(100, 180, 255, 0.5)",
-            backdropFilter: "blur(8px)",
-            maxWidth: "280px",
-            border: isDarkMode
-              ? "1px solid rgba(149, 128, 255, 0.3)"
-              : "1px solid rgba(126, 166, 224, 0.3)",
-            animation: "pulse 2s infinite",
+              ? "rgba(200, 210, 255, 1)"
+              : "rgba(50, 70, 120, 1)",
+            borderColor: isDarkMode
+              ? "rgba(100, 120, 255, 0.5)"
+              : "rgba(120, 150, 255, 0.5)",
+            backdropFilter: "blur(10px)",
           }}
+          onClick={() => setShowGameRules(true)}
         >
-          <div className="text-lg font-semibold mb-1">
-            Collect the glowing orbs!
-          </div>
-          <div className="text-sm opacity-80">
-            Click the golden blobs to earn points.
-            <br />
-            Quick captures build your combo multiplier!
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="text-xl sm:text-2xl animate-bounce">🎮</div>
+            <div className="flex-1 min-w-0">
+              <div className="font-semibold text-xs sm:text-sm truncate">
+                Unlock Daily Paste Limits!
+              </div>
+              <div className="text-xs opacity-80 mt-1 truncate">
+                Click floating orbs to earn points
+              </div>
+              <div
+                className="text-xs mt-1 truncate"
+                style={{
+                  color: isDarkMode
+                    ? "rgba(150, 200, 100, 1)"
+                    : "rgba(100, 150, 50, 1)",
+                }}
+              >
+                🎯 Current: {gameStateRef.current.score.toLocaleString()} pts
+              </div>
+            </div>
           </div>
         </div>
-      )}
+      </div>
     </>
   );
 };
