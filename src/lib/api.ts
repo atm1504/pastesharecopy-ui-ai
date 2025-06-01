@@ -366,9 +366,15 @@ export const getDailyUsage = async (): Promise<DailyUsageResponse> => {
 
 export const updateSnippet = async (data: UpdateSnippetRequest) => {
   try {
+    const deviceId = getDeviceId();
     const updateSnippetFn = httpsCallable(functions, "update_snippet");
 
-    const result = await updateSnippetFn(data);
+    const requestData = {
+      ...data,
+      deviceId,
+    };
+
+    const result = await updateSnippetFn(requestData);
     return result.data as { success: boolean; message: string };
   } catch (error: unknown) {
     console.error("Error updating snippet:", error);
