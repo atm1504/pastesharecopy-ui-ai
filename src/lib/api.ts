@@ -10,6 +10,8 @@ export interface CreateSnippetRequest {
   title?: string;
   expiration: string;
   isConfidential?: boolean;
+  isPasswordProtected?: boolean;
+  password?: string;
 }
 
 export interface CreateSnippetResponse {
@@ -35,6 +37,8 @@ export interface GetSnippetResponse {
     expiresAt?: TimestampType;
     viewCount: number;
     isConfidential: boolean;
+    isPasswordProtected: boolean;
+    canEdit: boolean;
     createdBy: string;
   };
 }
@@ -44,6 +48,7 @@ export interface UpdateSnippetRequest {
   code: string;
   language?: string;
   title?: string;
+  password?: string;
 }
 
 // Type for Firebase function errors
@@ -192,61 +197,43 @@ export const createSnippet = async (
 };
 
 export const getSnippet = async (
-  shortUrl: string
+  shortUrl: string,
+  password?: string
 ): Promise<GetSnippetResponse> => {
   try {
     const deviceId = getDeviceId();
     const getSnippetFn = httpsCallable(functions, "get_snippet");
 
-    console.log("Calling get_snippet function with:", { shortUrl, deviceId });
-
-    const result = await getSnippetFn({
+    const requestData: any = {
       shortUrl,
       deviceId,
-    });
+    };
 
-    console.log("Raw function result:", result);
-    console.log("Result data:", result.data);
-
-    // Validate the response structure
-    if (!result.data) {
-      throw new Error("No data received from server");
+    if (password) {
+      requestData.password = password;
     }
 
-    const response = result.data as GetSnippetResponse;
-
-    if (!response.success) {
-      throw new Error("Server returned unsuccessful response");
-    }
-
-    if (!response.snippet) {
-      throw new Error("No snippet data in response");
-    }
-
-    console.log("Parsed snippet:", response.snippet);
-    return response;
+    const result = await getSnippetFn(requestData);
+    return result.data as GetSnippetResponse;
   } catch (error: unknown) {
     console.error("Error getting snippet:", error);
 
+    // Handle specific Firebase function errors
     if (isFirebaseError(error)) {
-      console.error("Error details:", {
-        code: error.code,
-        message: error.message,
-        details: error.details,
-      });
-
-      // Handle specific Firebase function errors
       if (error.code === "functions/not-found") {
-        throw new Error("Snippet not found or has expired.");
+        throw new Error("Snippet not found or has expired");
       } else if (error.code === "functions/permission-denied") {
-        throw new Error(
-          "This snippet is confidential and can only be accessed by its creator."
-        );
+        // Check if it's a password-related error
+        const errorMessage = error.message || "";
+        if (errorMessage.includes("password")) {
+          throw new Error(errorMessage);
+        }
+        throw new Error("Access denied to this snippet");
       }
     }
 
     const errorMessage =
-      error instanceof Error ? error.message : "Failed to retrieve snippet";
+      error instanceof Error ? error.message : "Failed to get snippet";
     throw new Error(errorMessage);
   }
 };
@@ -277,6 +264,8 @@ export interface UserSnippet {
   lastViewed?: string;
   viewCount: number;
   isConfidential: boolean;
+  isPasswordProtected: boolean;
+  hasPassword?: boolean;
   contentPreview: string;
 }
 
@@ -375,19 +364,22 @@ export const updateSnippet = async (data: UpdateSnippetRequest) => {
     };
 
     const result = await updateSnippetFn(requestData);
-    return result.data as { success: boolean; message: string };
+    return result.data;
   } catch (error: unknown) {
     console.error("Error updating snippet:", error);
 
+    // Handle specific Firebase function errors
     if (isFirebaseError(error)) {
-      if (error.code === "functions/unauthenticated") {
-        throw new Error("You must be signed in to edit snippets");
-      } else if (error.code === "functions/permission-denied") {
-        throw new Error("You can only edit your own snippets");
-      } else if (error.code === "functions/not-found") {
+      if (error.code === "functions/not-found") {
         throw new Error("Snippet not found");
-      } else if (error.code === "functions/invalid-argument") {
-        throw new Error("Invalid snippet data provided.");
+      } else if (error.code === "functions/permission-denied") {
+        const errorMessage = error.message || "";
+        if (errorMessage.includes("password")) {
+          throw new Error(errorMessage);
+        }
+        throw new Error("You don't have permission to edit this snippet");
+      } else if (error.code === "functions/unauthenticated") {
+        throw new Error("Authentication required to edit snippets");
       }
     }
 
@@ -690,3 +682,45 @@ export const getPlatformInsights =
       throw new Error(errorMessage);
     }
   };
+
+export interface GetSnippetPasswordResponse {
+  success: boolean;
+  hasPassword: boolean;
+  password?: string;
+}
+
+export const getSnippetPassword = async (
+  snippetId: string
+): Promise<GetSnippetPasswordResponse> => {
+  try {
+    const deviceId = getDeviceId();
+    const getSnippetPasswordFn = httpsCallable(
+      functions,
+      "get_snippet_password"
+    );
+
+    const result = await getSnippetPasswordFn({
+      snippetId,
+      deviceId,
+    });
+
+    return result.data as GetSnippetPasswordResponse;
+  } catch (error: unknown) {
+    console.error("Error getting snippet password:", error);
+
+    // Handle specific Firebase function errors
+    if (isFirebaseError(error)) {
+      if (error.code === "functions/not-found") {
+        throw new Error("Snippet not found");
+      } else if (error.code === "functions/permission-denied") {
+        throw new Error(
+          "Only the creator can view the password for this snippet"
+        );
+      }
+    }
+
+    const errorMessage =
+      error instanceof Error ? error.message : "Failed to get snippet password";
+    throw new Error(errorMessage);
+  }
+};

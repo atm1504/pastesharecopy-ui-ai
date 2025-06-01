@@ -19,7 +19,7 @@
     "features": "Features",
     "pricing": "Pricing",
     "docs": "Documentation",
-    "login": "Log In",
+    "login": "Login",
     "signup": "Sign Up",
     "dashboard": "Dashboard",
     "settings": "Settings",
@@ -39,8 +39,9 @@
     "cookies": "Cookies",
     "copyright": "All rights reserved.",
     "yourSharedLinks": "Your Shared Links",
-    "openLink": "Open link",
-    "viewYourLinks": "View Your Links"
+    "openLink": "Open Link",
+    "viewYourLinks": "View Your Links",
+    "availableLinksTooltip": "Available links today. Earn more by playing games!"
   },
   "actions": {
     "startPasting": "Start Pasting",
