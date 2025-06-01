@@ -233,15 +233,19 @@ const SnippetView: React.FC = () => {
   // Function to handle edit button click
   const handleEditClick = () => {
     if (!snippet) return;
-    
+
     // Navigate to editor with the snippet data
-    navigate('/', { 
-      state: { 
+    navigate("/", {
+      state: {
         editMode: true,
         snippetId: snippet.id,
+        shortUrl: shortUrl,
         code: snippet.content,
-        language: snippet.language
-      }
+        language: snippet.language,
+        title: snippet.title,
+        expiresAt: snippet.expiresAt,
+        isConfidential: snippet.isConfidential,
+      },
     });
   };
 
@@ -307,23 +311,25 @@ const SnippetView: React.FC = () => {
           </Button>
 
           <div className="flex items-center justify-between flex-wrap gap-4">
-            <div>
-              <h1 className="text-3xl font-bold mb-2">{snippet.title}</h1>
-              <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                <div className="flex items-center gap-1">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-3xl font-bold mb-2 break-words">
+                {snippet.title}
+              </h1>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
+                <div className="flex items-center gap-1 flex-shrink-0">
                   <User className="h-4 w-4" />
-                  {snippet.createdBy}
+                  <span className="truncate">{snippet.createdBy}</span>
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 flex-shrink-0">
                   <Calendar className="h-4 w-4" />
                   {formatTimestamp(snippet.createdAt)}
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 flex-shrink-0">
                   <Eye className="h-4 w-4" />
                   {snippet.viewCount} views
                 </div>
                 {snippet.expiresAt && (
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 flex-shrink-0">
                     <Clock className="h-4 w-4" />
                     Expires {formatTimestamp(snippet.expiresAt)}
                   </div>
@@ -331,7 +337,7 @@ const SnippetView: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
               <Badge variant="secondary">{snippet.language}</Badge>
               {snippet.isConfidential && (
                 <Badge variant="destructive">Confidential</Badge>
@@ -342,15 +348,16 @@ const SnippetView: React.FC = () => {
 
         <Card>
           <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
               <CardTitle className="text-lg">Code</CardTitle>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 {/* Add edit button for authenticated users */}
                 {user && (
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={handleEditClick}
+                    className="flex-shrink-0"
                   >
                     <Edit className="mr-2 h-4 w-4" />
                     Edit
@@ -363,6 +370,7 @@ const SnippetView: React.FC = () => {
                     variant="outline"
                     disabled
                     title="Sign in to edit this snippet"
+                    className="flex-shrink-0"
                   >
                     <Edit className="mr-2 h-4 w-4" />
                     Edit
@@ -377,15 +385,26 @@ const SnippetView: React.FC = () => {
                       "Code copied to clipboard!"
                     )
                   }
+                  className="flex-shrink-0"
                 >
                   <Copy className="mr-2 h-4 w-4" />
                   Copy
                 </Button>
-                <Button size="sm" variant="outline" onClick={downloadSnippet}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={downloadSnippet}
+                  className="flex-shrink-0"
+                >
                   <Download className="mr-2 h-4 w-4" />
                   Download
                 </Button>
-                <Button size="sm" variant="outline" onClick={shareSnippet}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={shareSnippet}
+                  className="flex-shrink-0"
+                >
                   <Share2 className="mr-2 h-4 w-4" />
                   Share
                 </Button>
