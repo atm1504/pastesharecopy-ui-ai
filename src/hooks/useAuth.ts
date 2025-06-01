@@ -24,6 +24,7 @@ interface UserProfile {
   };
   gamePoints: number;
   availableLinks: number;
+  dailyLimit?: number;
   totalLinksCreated: number;
   isAuthenticated: boolean;
 }

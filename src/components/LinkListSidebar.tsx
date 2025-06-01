@@ -25,12 +25,8 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import {
-  getUserSnippets,
-  getDailyUsage,
-  type UserSnippet,
-  type DailyUsageResponse,
-} from "@/lib/api";
+import { getUserSnippets, type UserSnippet } from "@/lib/api";
+import { useAuth } from "@/hooks/useAuth";
 
 interface LinkListSidebarProps {
   open: boolean;
@@ -42,30 +38,25 @@ export const LinkListSidebar: React.FC<LinkListSidebarProps> = ({
   onClose,
 }) => {
   const { t } = useTranslation();
+  const { profile } = useAuth();
   const [snippets, setSnippets] = useState<UserSnippet[]>([]);
-  const [dailyUsage, setDailyUsage] = useState<DailyUsageResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
 
-  const fetchData = async (page: number = 1) => {
+  const fetchSnippets = async (page: number = 1) => {
     setLoading(true);
     setError(null);
 
     try {
-      // Fetch both snippets and daily usage in parallel
-      const [snippetsResponse, usageResponse] = await Promise.all([
-        getUserSnippets(page, 10),
-        getDailyUsage(),
-      ]);
+      const snippetsResponse = await getUserSnippets(page, 10);
 
       setSnippets(snippetsResponse.snippets);
       setCurrentPage(snippetsResponse.pagination.currentPage);
       setTotalPages(snippetsResponse.pagination.totalPages);
       setTotalCount(snippetsResponse.pagination.totalCount);
-      setDailyUsage(usageResponse);
     } catch (err) {
       console.error("Error fetching data:", err);
       setError(err instanceof Error ? err.message : "Failed to load data");
@@ -76,34 +67,57 @@ export const LinkListSidebar: React.FC<LinkListSidebarProps> = ({
 
   useEffect(() => {
     if (open) {
-      fetchData();
+      fetchSnippets(1);
+
+      // Debug logging for available links calculation
+      if (process.env.NODE_ENV === "development" && profile) {
+        console.log("LinkListSidebar: Profile data", {
+          isAuthenticated: profile.isAuthenticated,
+          subscription: profile.subscription,
+          availableLinks: profile.availableLinks,
+          dailyLimit: profile.dailyLimit,
+          totalLinksCreated: profile.totalLinksCreated,
+          usedToday: getUsedToday(),
+          remaining: getRemaining(),
+        });
+      }
     }
-  }, [open]);
+  }, [open, profile]);
 
   const handlePageChange = (page: number) => {
     if (page >= 1 && page <= totalPages) {
-      fetchData(page);
+      fetchSnippets(page);
     }
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat("en-US", {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(date);
+  const handleRetry = () => {
+    fetchSnippets(currentPage);
+  };
+
+  const formatDate = (timestamp: string | Date) => {
+    try {
+      const date = new Date(timestamp);
+      if (isNaN(date.getTime())) return "Invalid date";
+      return date.toLocaleDateString();
+    } catch {
+      return "Invalid date";
+    }
   };
 
   const isExpired = (expiresAt?: string) => {
     if (!expiresAt) return false;
-    return new Date(expiresAt) < new Date();
+    try {
+      return new Date(expiresAt) < new Date();
+    } catch {
+      return false;
+    }
   };
 
   const getUsagePercentage = () => {
-    if (!dailyUsage || dailyUsage.dailyLimit === -1) return 0;
-    return (dailyUsage.usedToday / dailyUsage.dailyLimit) * 100;
+    if (!profile || !profile.dailyLimit || profile.dailyLimit === -1) return 0;
+    const usedToday =
+      (profile.dailyLimit || 10) - (profile.availableLinks || 0);
+    return (usedToday / (profile.dailyLimit || 10)) * 100;
   };
 
   const getUsageColor = () => {
@@ -111,6 +125,36 @@ export const LinkListSidebar: React.FC<LinkListSidebarProps> = ({
     if (percentage >= 90) return "bg-red-500";
     if (percentage >= 70) return "bg-yellow-500";
     return "bg-green-500";
+  };
+
+  const getUserTypeLabel = () => {
+    if (!profile) return t("usage.userType.anonymous");
+    if (profile.subscription?.plan) return t("usage.userType.premium");
+    if (profile.isAuthenticated) return t("usage.userType.free");
+    return t("usage.userType.anonymous");
+  };
+
+  const getDailyLimit = () => {
+    if (!profile || !profile.dailyLimit) return 10; // Default for free users
+    if (profile.dailyLimit === -1) return -1; // Unlimited
+    return profile.dailyLimit;
+  };
+
+  const getDailyLimitDisplay = () => {
+    const limit = getDailyLimit();
+    return limit === -1 ? "∞" : limit;
+  };
+
+  const getUsedToday = () => {
+    if (!profile) return 0;
+    const limit = profile.dailyLimit || 10;
+    const available = profile.availableLinks || 0;
+    return limit === -1 ? 0 : Math.max(0, limit - available);
+  };
+
+  const getRemaining = () => {
+    if (!profile) return 0;
+    return profile.availableLinks || 0;
   };
 
   return (
@@ -131,40 +175,46 @@ export const LinkListSidebar: React.FC<LinkListSidebarProps> = ({
         <ScrollArea className="h-[calc(100vh-8rem)] py-4">
           <div className="space-y-4">
             {/* Daily Usage Card */}
-            {dailyUsage && (
+            {profile && (
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-medium">
                     {t("usage.todayUsage")}
                   </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-muted-foreground">
-                      {t(`usage.userType.${dailyUsage.userType}`)}
+                      {getUserTypeLabel()}
                     </span>
                     <Badge
                       variant={
-                        dailyUsage.userType === "premium"
-                          ? "default"
-                          : "secondary"
+                        profile.subscription?.plan ? "default" : "secondary"
                       }
                     >
-                      {dailyUsage.userType === "premium"
+                      {profile.subscription?.plan
                         ? t("usage.unlimited")
-                        : `${dailyUsage.usedToday}/${dailyUsage.dailyLimit}`}
+                        : `${getUsedToday()}/${getDailyLimitDisplay()}`}
                     </Badge>
                   </div>
 
-                  {dailyUsage.dailyLimit !== -1 && (
+                  {/* Show gaming bonus if user has earned extra links */}
+                  {!profile.subscription?.plan &&
+                    getDailyLimit() > 10 &&
+                    getDailyLimit() !== -1 && (
+                      <div className="text-xs text-green-600 dark:text-green-400 mt-1">
+                        🎮 Gaming bonus: +{getDailyLimit() - 10} extra links!
+                      </div>
+                    )}
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {profile.dailyLimit !== -1 && (
                     <div className="space-y-2">
                       <Progress value={getUsagePercentage()} className="h-2" />
                       <div className="flex justify-between text-xs text-muted-foreground">
                         <span>
-                          {t("usage.used")}: {dailyUsage.usedToday}
+                          {t("usage.used")}: {getUsedToday()}
                         </span>
                         <span>
-                          {t("usage.remaining")}: {dailyUsage.remainingToday}
+                          {t("usage.remaining")}: {getRemaining()}
                         </span>
                       </div>
                     </div>
@@ -176,7 +226,7 @@ export const LinkListSidebar: React.FC<LinkListSidebarProps> = ({
                         {t("usage.totalCreated")}
                       </div>
                       <div className="font-medium">
-                        {dailyUsage.totalLinksCreated}
+                        {profile.totalLinksCreated}
                       </div>
                     </div>
                     <div>
@@ -184,9 +234,9 @@ export const LinkListSidebar: React.FC<LinkListSidebarProps> = ({
                         {t("usage.availableLinks")}
                       </div>
                       <div className="font-medium">
-                        {dailyUsage.availableLinks === -1
+                        {profile.availableLinks === -1
                           ? t("usage.unlimited")
-                          : dailyUsage.availableLinks}
+                          : profile.availableLinks}
                       </div>
                     </div>
                   </div>
@@ -219,7 +269,7 @@ export const LinkListSidebar: React.FC<LinkListSidebarProps> = ({
                     variant="outline"
                     size="sm"
                     className="mt-3"
-                    onClick={() => fetchData(currentPage)}
+                    onClick={handleRetry}
                   >
                     <RefreshCw className="h-3 w-3 mr-1" />
                     {t("links.retry")}
@@ -289,7 +339,7 @@ export const LinkListSidebar: React.FC<LinkListSidebarProps> = ({
                             asChild
                           >
                             <a
-                              href={`https://pastesharecopy.com/${snippet.shortUrl}`}
+                              href={`${window.location.origin}/${snippet.shortUrl}`}
                               target="_blank"
                               rel="noopener noreferrer"
                             >
@@ -303,7 +353,7 @@ export const LinkListSidebar: React.FC<LinkListSidebarProps> = ({
 
                         <div className="mt-3">
                           <div className="text-xs bg-muted p-2 rounded font-mono truncate">
-                            pastesharecopy.com/{snippet.shortUrl}
+                            {window.location.host}/{snippet.shortUrl}
                           </div>
                           <div
                             className="text-xs text-muted-foreground mt-1 overflow-hidden"

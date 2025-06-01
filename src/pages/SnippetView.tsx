@@ -15,6 +15,7 @@ import {
   Download,
   Save,
   Edit,
+  Lock,
 } from "lucide-react";
 import { getSnippet, GetSnippetResponse, TimestampType } from "@/lib/api";
 import NavBar from "@/components/NavBar";
@@ -23,6 +24,16 @@ import CodeEditor from "@uiw/react-textarea-code-editor";
 import { useTheme } from "@/hooks/useTheme";
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 // Simple code display component as fallback
 const SimpleCodeDisplay: React.FC<{
@@ -70,6 +81,10 @@ const SnippetView: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [codeEditorFailed, setCodeEditorFailed] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [password, setPassword] = useState("");
+  const [isPasswordProtected, setIsPasswordProtected] = useState(false);
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
 
   const isDarkMode =
     theme === "dark" ||
@@ -118,39 +133,52 @@ const SnippetView: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    const loadSnippet = async () => {
-      if (!shortUrl) {
-        setError("Invalid snippet URL");
-        setLoading(false);
-        return;
+  const loadSnippet = async (passwordAttempt?: string) => {
+    if (!shortUrl) {
+      setError("Invalid snippet URL");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      console.log("Loading snippet for shortUrl:", shortUrl);
+      const response = await getSnippet(shortUrl, passwordAttempt);
+      console.log("Received snippet response:", response);
+
+      if (response && response.snippet) {
+        setSnippet(response.snippet);
+        setIsPasswordProtected(false);
+        setShowPasswordDialog(false);
+        setPasswordError("");
+        console.log("Snippet content:", response.snippet.content);
+        console.log(
+          "Snippet content length:",
+          response.snippet.content?.length
+        );
+      } else {
+        setError("No snippet data received");
       }
+    } catch (err: unknown) {
+      console.error("Error loading snippet:", err);
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to load snippet";
 
-      try {
-        console.log("Loading snippet for shortUrl:", shortUrl);
-        const response = await getSnippet(shortUrl);
-        console.log("Received snippet response:", response);
-
-        if (response && response.snippet) {
-          setSnippet(response.snippet);
-          console.log("Snippet content:", response.snippet.content);
-          console.log(
-            "Snippet content length:",
-            response.snippet.content?.length
-          );
-        } else {
-          setError("No snippet data received");
-        }
-      } catch (err: unknown) {
-        console.error("Error loading snippet:", err);
-        const errorMessage =
-          err instanceof Error ? err.message : "Failed to load snippet";
+      // Check if it's a password-related error
+      if (errorMessage.includes("password protected")) {
+        setIsPasswordProtected(true);
+        setShowPasswordDialog(true);
+        setPasswordError("");
+      } else if (errorMessage.includes("Incorrect password")) {
+        setPasswordError("Incorrect password. Please try again.");
+      } else {
         setError(errorMessage);
-      } finally {
-        setLoading(false);
       }
-    };
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     loadSnippet();
   }, [shortUrl]);
 
@@ -232,17 +260,80 @@ const SnippetView: React.FC = () => {
 
   // Function to handle edit button click
   const handleEditClick = () => {
-    if (!snippet) return;
-    
-    // Navigate to editor with the snippet data
-    navigate('/', { 
-      state: { 
+    console.log("Edit button clicked", { snippet, user, shortUrl });
+
+    if (!snippet) {
+      console.error("No snippet data available for editing");
+      toast({
+        title: "Error",
+        description: "Snippet data is not available for editing",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check if user has edit permission (from API response)
+    if (!snippet.canEdit) {
+      toast({
+        title: "Permission Denied",
+        description: "You don't have permission to edit this snippet",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      console.log("Navigating to editor with edit state", {
         editMode: true,
         snippetId: snippet.id,
+        shortUrl: shortUrl,
         code: snippet.content,
-        language: snippet.language
-      }
-    });
+        language: snippet.language,
+        title: snippet.title,
+        expiresAt: snippet.expiresAt,
+        isConfidential: snippet.isConfidential,
+        isPasswordProtected: snippet.isPasswordProtected,
+        password: snippet.isPasswordProtected ? password : undefined,
+      });
+
+      // Navigate to editor with the snippet data
+      navigate("/", {
+        state: {
+          editMode: true,
+          snippetId: snippet.id,
+          shortUrl: shortUrl,
+          code: snippet.content,
+          language: snippet.language,
+          title: snippet.title,
+          expiresAt: snippet.expiresAt,
+          isConfidential: snippet.isConfidential,
+          isPasswordProtected: snippet.isPasswordProtected,
+          password: snippet.isPasswordProtected ? password : undefined,
+        },
+        replace: false,
+      });
+
+      // Add success feedback
+      toast({
+        title: "Opening Editor",
+        description: "Redirecting to editor with your snippet...",
+      });
+    } catch (error) {
+      console.error("Error navigating to editor:", error);
+      toast({
+        title: "Navigation Error",
+        description: "Failed to open editor. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handlePasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password.trim()) {
+      setLoading(true);
+      loadSnippet(password.trim());
+    }
   };
 
   if (loading) {
@@ -307,23 +398,25 @@ const SnippetView: React.FC = () => {
           </Button>
 
           <div className="flex items-center justify-between flex-wrap gap-4">
-            <div>
-              <h1 className="text-3xl font-bold mb-2">{snippet.title}</h1>
-              <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                <div className="flex items-center gap-1">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-3xl font-bold mb-2 break-words">
+                {snippet.title}
+              </h1>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
+                <div className="flex items-center gap-1 flex-shrink-0">
                   <User className="h-4 w-4" />
-                  {snippet.createdBy}
+                  <span className="truncate">{snippet.createdBy}</span>
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 flex-shrink-0">
                   <Calendar className="h-4 w-4" />
                   {formatTimestamp(snippet.createdAt)}
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 flex-shrink-0">
                   <Eye className="h-4 w-4" />
                   {snippet.viewCount} views
                 </div>
                 {snippet.expiresAt && (
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 flex-shrink-0">
                     <Clock className="h-4 w-4" />
                     Expires {formatTimestamp(snippet.expiresAt)}
                   </div>
@@ -331,10 +424,16 @@ const SnippetView: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
               <Badge variant="secondary">{snippet.language}</Badge>
               {snippet.isConfidential && (
                 <Badge variant="destructive">Confidential</Badge>
+              )}
+              {snippet.isPasswordProtected && (
+                <Badge variant="outline" className="flex items-center gap-1">
+                  <Lock className="h-3 w-3" />
+                  Password Protected
+                </Badge>
               )}
             </div>
           </div>
@@ -342,30 +441,45 @@ const SnippetView: React.FC = () => {
 
         <Card>
           <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
               <CardTitle className="text-lg">Code</CardTitle>
-              <div className="flex items-center gap-2">
-                {/* Add edit button for authenticated users */}
-                {user && (
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Debug info in development */}
+                {process.env.NODE_ENV === "development" && (
+                  <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                    User: {user ? "Authenticated" : "Anonymous"} | Snippet:{" "}
+                    {snippet?.id ? "Loaded" : "Missing"}
+                  </div>
+                )}
+
+                {/* Edit button with improved logic */}
+                {snippet.canEdit ? (
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={handleEditClick}
+                    className="flex-shrink-0"
+                    disabled={!snippet || !snippet.id}
                   >
                     <Edit className="mr-2 h-4 w-4" />
                     Edit
                   </Button>
-                )}
-                {/* Show disabled edit button for anonymous users */}
-                {!user && (
+                ) : (
                   <Button
                     size="sm"
                     variant="outline"
                     disabled
-                    title="Sign in to edit this snippet"
+                    title={
+                      snippet.isPasswordProtected
+                        ? "Password required to edit"
+                        : "Only the creator can edit this snippet"
+                    }
+                    className="flex-shrink-0 opacity-50"
                   >
                     <Edit className="mr-2 h-4 w-4" />
-                    Edit
+                    {snippet.isPasswordProtected
+                      ? "Edit (Password required)"
+                      : "Edit (Creator only)"}
                   </Button>
                 )}
                 <Button
@@ -377,15 +491,26 @@ const SnippetView: React.FC = () => {
                       "Code copied to clipboard!"
                     )
                   }
+                  className="flex-shrink-0"
                 >
                   <Copy className="mr-2 h-4 w-4" />
                   Copy
                 </Button>
-                <Button size="sm" variant="outline" onClick={downloadSnippet}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={downloadSnippet}
+                  className="flex-shrink-0"
+                >
                   <Download className="mr-2 h-4 w-4" />
                   Download
                 </Button>
-                <Button size="sm" variant="outline" onClick={shareSnippet}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={shareSnippet}
+                  className="flex-shrink-0"
+                >
                   <Share2 className="mr-2 h-4 w-4" />
                   Share
                 </Button>
@@ -467,6 +592,60 @@ const SnippetView: React.FC = () => {
           </CardContent>
         </Card>
       </main>
+
+      {/* Password Dialog */}
+      <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Lock className="h-5 w-5" />
+              Password Protected Snippet
+            </DialogTitle>
+            <DialogDescription>
+              This snippet is password protected. Please enter the password to
+              view its content.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handlePasswordSubmit}>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="password" className="text-right">
+                  Password
+                </Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="col-span-3"
+                  placeholder="Enter password"
+                  autoFocus
+                />
+              </div>
+              {passwordError && (
+                <div className="text-sm text-destructive text-center">
+                  {passwordError}
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setShowPasswordDialog(false);
+                  navigate("/");
+                }}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={!password.trim() || loading}>
+                {loading ? "Verifying..." : "Submit"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <FooterSection />
     </div>

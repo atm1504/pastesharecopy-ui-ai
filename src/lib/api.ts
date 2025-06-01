@@ -10,6 +10,8 @@ export interface CreateSnippetRequest {
   title?: string;
   expiration: string;
   isConfidential?: boolean;
+  isPasswordProtected?: boolean;
+  password?: string;
 }
 
 export interface CreateSnippetResponse {
@@ -35,6 +37,8 @@ export interface GetSnippetResponse {
     expiresAt?: TimestampType;
     viewCount: number;
     isConfidential: boolean;
+    isPasswordProtected: boolean;
+    canEdit: boolean;
     createdBy: string;
   };
 }
@@ -44,6 +48,7 @@ export interface UpdateSnippetRequest {
   code: string;
   language?: string;
   title?: string;
+  password?: string;
 }
 
 // Type for Firebase function errors
@@ -192,61 +197,43 @@ export const createSnippet = async (
 };
 
 export const getSnippet = async (
-  shortUrl: string
+  shortUrl: string,
+  password?: string
 ): Promise<GetSnippetResponse> => {
   try {
     const deviceId = getDeviceId();
     const getSnippetFn = httpsCallable(functions, "get_snippet");
 
-    console.log("Calling get_snippet function with:", { shortUrl, deviceId });
-
-    const result = await getSnippetFn({
+    const requestData: any = {
       shortUrl,
       deviceId,
-    });
+    };
 
-    console.log("Raw function result:", result);
-    console.log("Result data:", result.data);
-
-    // Validate the response structure
-    if (!result.data) {
-      throw new Error("No data received from server");
+    if (password) {
+      requestData.password = password;
     }
 
-    const response = result.data as GetSnippetResponse;
-
-    if (!response.success) {
-      throw new Error("Server returned unsuccessful response");
-    }
-
-    if (!response.snippet) {
-      throw new Error("No snippet data in response");
-    }
-
-    console.log("Parsed snippet:", response.snippet);
-    return response;
+    const result = await getSnippetFn(requestData);
+    return result.data as GetSnippetResponse;
   } catch (error: unknown) {
     console.error("Error getting snippet:", error);
 
+    // Handle specific Firebase function errors
     if (isFirebaseError(error)) {
-      console.error("Error details:", {
-        code: error.code,
-        message: error.message,
-        details: error.details,
-      });
-
-      // Handle specific Firebase function errors
       if (error.code === "functions/not-found") {
-        throw new Error("Snippet not found or has expired.");
+        throw new Error("Snippet not found or has expired");
       } else if (error.code === "functions/permission-denied") {
-        throw new Error(
-          "This snippet is confidential and can only be accessed by its creator."
-        );
+        // Check if it's a password-related error
+        const errorMessage = error.message || "";
+        if (errorMessage.includes("password")) {
+          throw new Error(errorMessage);
+        }
+        throw new Error("Access denied to this snippet");
       }
     }
 
     const errorMessage =
-      error instanceof Error ? error.message : "Failed to retrieve snippet";
+      error instanceof Error ? error.message : "Failed to get snippet";
     throw new Error(errorMessage);
   }
 };
@@ -277,6 +264,8 @@ export interface UserSnippet {
   lastViewed?: string;
   viewCount: number;
   isConfidential: boolean;
+  isPasswordProtected: boolean;
+  hasPassword?: boolean;
   contentPreview: string;
 }
 
@@ -366,27 +355,372 @@ export const getDailyUsage = async (): Promise<DailyUsageResponse> => {
 
 export const updateSnippet = async (data: UpdateSnippetRequest) => {
   try {
+    const deviceId = getDeviceId();
     const updateSnippetFn = httpsCallable(functions, "update_snippet");
 
-    const result = await updateSnippetFn(data);
-    return result.data as { success: boolean; message: string };
+    const requestData = {
+      ...data,
+      deviceId,
+    };
+
+    const result = await updateSnippetFn(requestData);
+    return result.data;
   } catch (error: unknown) {
     console.error("Error updating snippet:", error);
 
+    // Handle specific Firebase function errors
     if (isFirebaseError(error)) {
-      if (error.code === "functions/unauthenticated") {
-        throw new Error("You must be signed in to edit snippets");
-      } else if (error.code === "functions/permission-denied") {
-        throw new Error("You can only edit your own snippets");
-      } else if (error.code === "functions/not-found") {
+      if (error.code === "functions/not-found") {
         throw new Error("Snippet not found");
-      } else if (error.code === "functions/invalid-argument") {
-        throw new Error("Invalid snippet data provided.");
+      } else if (error.code === "functions/permission-denied") {
+        const errorMessage = error.message || "";
+        if (errorMessage.includes("password")) {
+          throw new Error(errorMessage);
+        }
+        throw new Error("You don't have permission to edit this snippet");
+      } else if (error.code === "functions/unauthenticated") {
+        throw new Error("Authentication required to edit snippets");
       }
     }
 
     const errorMessage =
       error instanceof Error ? error.message : "Failed to update snippet";
+    throw new Error(errorMessage);
+  }
+};
+
+// Game API functions
+export interface SubmitGameScoreRequest {
+  score: number;
+  gameSessionId?: string;
+  duration?: number;
+  collectiblesFound?: number;
+  maxComboMultiplier?: number;
+}
+
+export interface SubmitGameScoreResponse {
+  success: boolean;
+  gameSessionId: string;
+  previousGamePoints: number;
+  currentGamePoints: number;
+  scoreAdded: number;
+  previousDailyLimit: number;
+  newDailyLimit: number;
+  additionalLinksEarned: number;
+  totalAvailableLinks: number;
+  newlyUnlocked: Array<{
+    tier: number;
+    points: number;
+    reward: string;
+    psychologyType: string;
+    extraLinks: number;
+  }>;
+  milestones: Array<{
+    tier: number;
+    points: number;
+    extraLinks: number;
+    reward: string;
+    psychologyType: string;
+    urgency: string;
+    achieved: boolean;
+  }>;
+}
+
+export interface GameStatsResponse {
+  success: boolean;
+  currentGamePoints: number;
+  currentDailyLimit: number;
+  totalSessions: number;
+  totalScore: number;
+  highScore: number;
+  averageScore: number;
+  totalCollectibles: number;
+  bestComboMultiplier: number;
+  recentSessions: Array<{
+    sessionId: string;
+    score: number;
+    duration?: number;
+    collectiblesFound: number;
+    maxComboMultiplier: number;
+    additionalLinksEarned: number;
+    createdAt?: string;
+  }>;
+  nextMilestone?: {
+    tier: number;
+    points: number;
+    extraLinks: number;
+    reward: string;
+    psychologyType: string;
+    urgency: string;
+    progress: number;
+    remaining: number;
+  };
+  achievementsUnlocked: Array<{
+    tier: number;
+    points: number;
+    reward: string;
+    psychologyType: string;
+    extraLinks: number;
+  }>;
+  totalAchievements: number;
+  availableAchievements: number;
+}
+
+export interface LeaderboardResponse {
+  success: boolean;
+  leaderboard: Array<{
+    rank: number;
+    displayName: string;
+    gamePoints: number;
+    dailyLimit: number;
+    isAuthenticated: boolean;
+  }>;
+  totalEntries: number;
+}
+
+export interface AchievementProgressResponse {
+  success: boolean;
+  currentGamePoints: number;
+  currentDailyLimit: number;
+  achievements: Array<{
+    tier: number;
+    points: number;
+    extraLinks: number;
+    reward: string;
+    psychologyType: string;
+    urgency: string;
+    achieved: boolean;
+    isNext: boolean;
+    progress: number;
+    remaining: number;
+  }>;
+  totalAchieved: number;
+  totalAvailable: number;
+}
+
+export interface PlatformStatsResponse {
+  success: boolean;
+  pastesCreated: string;
+  dailyUsers: string;
+  languages: number;
+  uptime: number;
+  linksToday: number;
+  viewsToday: string;
+  totalShares: string;
+  lastUpdated: string;
+  error?: string;
+}
+
+export interface PlatformInsightsResponse {
+  success: boolean;
+  topLanguages: Array<{
+    name: string;
+    count: number;
+  }>;
+  weeklyTrend: Record<string, number>;
+  totalLanguages: number;
+  lastUpdated: string;
+  error?: string;
+}
+
+export const submitGameScore = async (
+  scoreData: SubmitGameScoreRequest
+): Promise<SubmitGameScoreResponse> => {
+  try {
+    const deviceId = getDeviceId();
+    const submitGameScoreFn = httpsCallable(functions, "submit_game_score");
+
+    const requestData = {
+      ...scoreData,
+      deviceId,
+    };
+
+    const result = await submitGameScoreFn(requestData);
+    return result.data as SubmitGameScoreResponse;
+  } catch (error: unknown) {
+    console.error("Error submitting game score:", error);
+
+    if (isFirebaseError(error)) {
+      if (error.code === "functions/invalid-argument") {
+        throw new Error("Invalid game session detected");
+      } else if (error.code === "functions/unauthenticated") {
+        throw new Error("Authentication or device ID is required");
+      } else if (error.code === "functions/not-found") {
+        throw new Error("User not found");
+      }
+    }
+
+    const errorMessage =
+      error instanceof Error ? error.message : "Failed to submit game score";
+    throw new Error(errorMessage);
+  }
+};
+
+export const getGameStats = async (): Promise<GameStatsResponse> => {
+  try {
+    const deviceId = getDeviceId();
+    const getGameStatsFn = httpsCallable(functions, "get_game_stats");
+
+    const result = await getGameStatsFn({
+      deviceId,
+    });
+
+    return result.data as GameStatsResponse;
+  } catch (error: unknown) {
+    console.error("Error getting game stats:", error);
+
+    if (isFirebaseError(error)) {
+      if (error.code === "functions/unauthenticated") {
+        throw new Error("Authentication or device ID is required");
+      } else if (error.code === "functions/not-found") {
+        throw new Error("User not found");
+      }
+    }
+
+    const errorMessage =
+      error instanceof Error ? error.message : "Failed to retrieve game stats";
+    throw new Error(errorMessage);
+  }
+};
+
+export const getLeaderboard = async (
+  limit: number = 10
+): Promise<LeaderboardResponse> => {
+  try {
+    const getLeaderboardFn = httpsCallable(functions, "get_leaderboard");
+
+    const result = await getLeaderboardFn({
+      limit,
+    });
+
+    return result.data as LeaderboardResponse;
+  } catch (error: unknown) {
+    console.error("Error getting leaderboard:", error);
+
+    const errorMessage =
+      error instanceof Error ? error.message : "Failed to retrieve leaderboard";
+    throw new Error(errorMessage);
+  }
+};
+
+export const getAchievementProgress =
+  async (): Promise<AchievementProgressResponse> => {
+    try {
+      const deviceId = getDeviceId();
+      const getAchievementProgressFn = httpsCallable(
+        functions,
+        "get_achievement_progress"
+      );
+
+      const result = await getAchievementProgressFn({
+        deviceId,
+      });
+
+      return result.data as AchievementProgressResponse;
+    } catch (error: unknown) {
+      console.error("Error getting achievement progress:", error);
+
+      if (isFirebaseError(error)) {
+        if (error.code === "functions/unauthenticated") {
+          throw new Error("Authentication or device ID is required");
+        } else if (error.code === "functions/not-found") {
+          throw new Error("User not found");
+        }
+      }
+
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to retrieve achievement progress";
+      throw new Error(errorMessage);
+    }
+  };
+
+export const getPlatformStats = async (): Promise<PlatformStatsResponse> => {
+  try {
+    const getPlatformStatsFn = httpsCallable(functions, "get_platform_stats");
+    const result = await getPlatformStatsFn({});
+    return result.data as PlatformStatsResponse;
+  } catch (error: unknown) {
+    console.error("Error getting platform stats:", error);
+
+    // Return fallback data if API fails
+    return {
+      success: false,
+      pastesCreated: "1M+",
+      dailyUsers: "50K+",
+      languages: 100,
+      uptime: 99.9,
+      linksToday: 158,
+      viewsToday: "12.3K",
+      totalShares: "4.7M+",
+      lastUpdated: new Date().toISOString(),
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch platform stats",
+    };
+  }
+};
+
+export const getPlatformInsights =
+  async (): Promise<PlatformInsightsResponse> => {
+    try {
+      const getPlatformInsightsFn = httpsCallable(
+        functions,
+        "get_platform_insights"
+      );
+      const result = await getPlatformInsightsFn({});
+      return result.data as PlatformInsightsResponse;
+    } catch (error: unknown) {
+      console.error("Error getting platform insights:", error);
+
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to retrieve platform insights";
+      throw new Error(errorMessage);
+    }
+  };
+
+export interface GetSnippetPasswordResponse {
+  success: boolean;
+  hasPassword: boolean;
+  password?: string;
+}
+
+export const getSnippetPassword = async (
+  snippetId: string
+): Promise<GetSnippetPasswordResponse> => {
+  try {
+    const deviceId = getDeviceId();
+    const getSnippetPasswordFn = httpsCallable(
+      functions,
+      "get_snippet_password"
+    );
+
+    const result = await getSnippetPasswordFn({
+      snippetId,
+      deviceId,
+    });
+
+    return result.data as GetSnippetPasswordResponse;
+  } catch (error: unknown) {
+    console.error("Error getting snippet password:", error);
+
+    // Handle specific Firebase function errors
+    if (isFirebaseError(error)) {
+      if (error.code === "functions/not-found") {
+        throw new Error("Snippet not found");
+      } else if (error.code === "functions/permission-denied") {
+        throw new Error(
+          "Only the creator can view the password for this snippet"
+        );
+      }
+    }
+
+    const errorMessage =
+      error instanceof Error ? error.message : "Failed to get snippet password";
     throw new Error(errorMessage);
   }
 };

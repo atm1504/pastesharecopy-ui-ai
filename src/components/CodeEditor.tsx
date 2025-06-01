@@ -56,7 +56,12 @@ import hljs from "highlight.js";
 import "highlight.js/styles/atom-one-dark.css";
 import { useTheme } from "@/hooks/useTheme";
 import { useTranslation } from "react-i18next";
-import { createSnippet, CreateSnippetRequest, updateSnippet, getSnippet } from "@/lib/api";
+import {
+  createSnippet,
+  CreateSnippetRequest,
+  updateSnippet,
+  getSnippet,
+} from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { LanguageSelect } from "@/components/LanguageSelect";
 import { useLocation } from "react-router-dom";
@@ -64,11 +69,28 @@ import { useLocation } from "react-router-dom";
 // Import light theme for hljs
 import "highlight.js/styles/github.css";
 
-const formSchema = z.object({
-  expiration: z.string().min(1),
-  isPasswordProtected: z.boolean().default(false),
-  password: z.string().optional(),
-});
+const formSchema = z
+  .object({
+    expiration: z.string().min(1),
+    isPasswordProtected: z.boolean().default(false),
+    password: z.string().optional(),
+  })
+  .refine(
+    (data) => {
+      // If password protection is enabled, password must be provided
+      if (
+        data.isPasswordProtected &&
+        (!data.password || data.password.trim() === "")
+      ) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: "Password is required when password protection is enabled",
+      path: ["password"],
+    }
+  );
 
 type FormValues = z.infer<typeof formSchema>;
 
@@ -354,12 +376,57 @@ const languageOptions = [
   { value: "powershell", label: "PowerShell" },
 ];
 
+// AI services configuration type
+interface AIService {
+  id: string;
+  name: string;
+  url: string;
+  waitBeforeOpen?: boolean;
+  inputSelector?: string;
+  setupScript?: () => void;
+}
+
 // AI services to directly paste to
-const aiServices = [
-  { id: "gpt", name: "ChatGPT", url: "https://chat.openai.com/" },
-  { id: "claude", name: "Claude", url: "https://claude.ai/" },
-  { id: "deepseek", name: "DeepSeek", url: "https://chat.deepseek.com/" },
-  { id: "grok", name: "Grok", url: "https://grok.x.ai/" },
+const aiServices: AIService[] = [
+  {
+    id: "gpt",
+    name: "ChatGPT",
+    url: "https://chat.openai.com/chat",
+    waitBeforeOpen: true,
+    inputSelector: 'textarea[placeholder*="Send a message"]',
+  },
+  {
+    id: "claude",
+    name: "Claude",
+    url: "https://claude.ai/chats",
+    waitBeforeOpen: true,
+    inputSelector: '[role="textbox"], .ProseMirror, [contenteditable="true"]',
+    setupScript: () => {
+      // Claude specific setup - try to focus and trigger input events
+      const input = document.querySelector(
+        '[role="textbox"], .ProseMirror, [contenteditable="true"]'
+      ) as HTMLElement;
+      if (input) {
+        input.focus();
+        input.click();
+        // Trigger input events to ensure Claude recognizes the paste
+        input.dispatchEvent(new Event("focus", { bubbles: true }));
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+    },
+  },
+  {
+    id: "deepseek",
+    name: "DeepSeek",
+    url: "https://chat.deepseek.com/",
+    inputSelector: "textarea",
+  },
+  {
+    id: "grok",
+    name: "Grok",
+    url: "https://grok.x.ai/",
+    inputSelector: 'textarea, [contenteditable="true"]',
+  },
 ];
 
 // Statistics for this paste (would be fetched from backend in real app)
@@ -781,6 +848,7 @@ const PasteCodeEditor: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>("editor");
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [snippetId, setSnippetId] = useState<string | null>(null);
+  const [editPassword, setEditPassword] = useState<string | null>(null);
   const [validation, setValidation] = useState<{
     isValid: boolean;
     error?: string;
@@ -840,16 +908,74 @@ const PasteCodeEditor: React.FC = () => {
 
   // Handle edit mode from snippet view
   useEffect(() => {
-    const state = location.state as { editMode: boolean; snippetId: string; code: string; language: string } | null;
+    const state = location.state as {
+      editMode: boolean;
+      snippetId: string;
+      shortUrl: string;
+      code: string;
+      language: string;
+      title: string;
+      expiresAt: any;
+      isConfidential: boolean;
+      isPasswordProtected?: boolean;
+      password?: string;
+    } | null;
+
+    console.log("CodeEditor: Location state changed", {
+      state,
+      pathname: location.pathname,
+    });
+
     if (state?.editMode) {
+      console.log("CodeEditor: Entering edit mode", state);
+
       setIsEditing(true);
       setSnippetId(state.snippetId);
       setCode(state.code);
       setLanguage(state.language);
+
+      // Store password for editing password-protected snippets
+      if (state.isPasswordProtected && state.password) {
+        setEditPassword(state.password);
+      }
+
+      // Set the generated link if we have the shortUrl
+      if (state.shortUrl) {
+        const fullUrl = `${window.location.origin}/${state.shortUrl}`;
+        setGeneratedLink(fullUrl);
+        console.log("CodeEditor: Set generated link", fullUrl);
+      }
+
+      // Set other form values if they exist
+      if (state.expiresAt) {
+        // Calculate remaining days for expiration
+        const now = new Date();
+        const expiresAt = new Date(state.expiresAt);
+        const diffTime = expiresAt.getTime() - now.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays <= 1) {
+          form.setValue("expiration", "1d");
+        } else if (diffDays <= 2) {
+          form.setValue("expiration", "2d");
+        } else if (diffDays <= 3) {
+          form.setValue("expiration", "3d");
+        } else if (diffDays <= 7) {
+          form.setValue("expiration", "7d");
+        }
+
+        console.log("CodeEditor: Set expiration", { diffDays, expiresAt });
+      }
+
       // Clear the location state to avoid re-applying on refresh
       window.history.replaceState({}, document.title);
+
+      toast({
+        title: "Edit Mode Activated",
+        description: "You can now edit this snippet",
+      });
     }
-  }, [location]);
+  }, [location, form, toast]);
 
   const handleLanguageChange = (value: string) => {
     setLanguage(value);
@@ -879,10 +1005,12 @@ const PasteCodeEditor: React.FC = () => {
         title: `${language} snippet`, // You could make this configurable
         expiration: values.expiration,
         isConfidential: false, // For now, no confidential snippets in free version
+        isPasswordProtected: values.isPasswordProtected,
+        password: values.isPasswordProtected ? values.password : undefined,
       };
 
       const result = await createSnippet(snippetData);
-      
+
       // Get the base URL from the current window location
       const baseUrl = window.location.origin;
       const fullUrl = `${baseUrl}/${result.shortUrl}`;
@@ -897,7 +1025,7 @@ const PasteCodeEditor: React.FC = () => {
             : "You have unlimited snippets."
         }`,
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error generating link:", error);
 
       // Handle specific error cases
@@ -976,51 +1104,204 @@ const PasteCodeEditor: React.FC = () => {
     }
   };
 
-  const handleAIPaste = async (service: {
-    id: string;
-    name: string;
-    url: string;
-  }) => {
-    // First, copy the code to clipboard
+  const handleAIPaste = async (service: AIService) => {
     try {
+      // Copy to clipboard
       await navigator.clipboard.writeText(code);
 
-      // Then open the AI service in a new tab
-      const aiWindow = window.open(service.url, "_blank");
-      if (aiWindow) {
-        toast({
-          title: `Code copied for ${service.name}!`,
-          description: "Just paste it (Ctrl+V/Cmd+V) in the chat",
-        });
+      toast({
+        title: `Opening ${service.name}...`,
+        description: "Attempting automatic paste",
+      });
+
+      // Function to attempt automatic paste
+      const attemptAutoPaste = async (targetWindow: Window) => {
+        try {
+          // Wait for the input element to be available
+          const maxAttempts = 10;
+          let attempts = 0;
+
+          const tryPaste = async () => {
+            if (attempts >= maxAttempts) return false;
+            attempts++;
+
+            try {
+              // Try to find the input element using the service-specific selector
+              const input = service.inputSelector
+                ? targetWindow.document.querySelector(service.inputSelector)
+                : targetWindow.document.querySelector(
+                    'textarea, [contenteditable="true"]'
+                  );
+
+              if (!input) {
+                // If input not found, wait and retry
+                await new Promise((resolve) => setTimeout(resolve, 500));
+                return await tryPaste();
+              }
+
+              // Run any service-specific setup
+              if (service.setupScript) {
+                service.setupScript.call(targetWindow.document);
+              }
+
+              // Focus the input
+              (input as HTMLElement).focus();
+
+              // Try multiple paste methods
+              const pasteMethods = [
+                // Method 1: execCommand
+                () => document.execCommand("paste"),
+
+                // Method 2: Clipboard API
+                async () => {
+                  const text = await navigator.clipboard.readText();
+                  if (input instanceof HTMLTextAreaElement) {
+                    input.value = text;
+                  } else {
+                    input.textContent = text;
+                  }
+                  input.dispatchEvent(new Event("input", { bubbles: true }));
+                },
+
+                // Method 3: Keyboard simulation
+                () => {
+                  const isMac = navigator.platform.includes("Mac");
+                  input.dispatchEvent(
+                    new KeyboardEvent("keydown", {
+                      key: "v",
+                      code: "KeyV",
+                      ctrlKey: !isMac,
+                      metaKey: isMac,
+                      bubbles: true,
+                    })
+                  );
+                },
+              ];
+
+              // Try each paste method until one works
+              for (const method of pasteMethods) {
+                try {
+                  await method();
+                  // Check if paste was successful
+                  if (
+                    input instanceof HTMLTextAreaElement &&
+                    input.value.length > 0
+                  ) {
+                    return true;
+                  } else if (
+                    input.textContent &&
+                    input.textContent.length > 0
+                  ) {
+                    return true;
+                  }
+                } catch (e) {
+                  console.warn("Paste method failed:", e);
+                  continue;
+                }
+              }
+
+              // If we got here, none of the methods worked
+              return false;
+            } catch (err) {
+              console.warn("Paste attempt failed:", err);
+              await new Promise((resolve) => setTimeout(resolve, 500));
+              return await tryPaste();
+            }
+          };
+
+          return await tryPaste();
+        } catch (err) {
+          console.error("Auto-paste attempt failed:", err);
+          return false;
+        }
+      };
+
+      // Function to open the AI service
+      const openAIService = async () => {
+        const targetUrl = service.url;
+        const aiWindow = window.open(targetUrl, "_blank");
+
+        if (!aiWindow) {
+          toast({
+            title: "Popup Blocked",
+            description:
+              "Please allow popups and try again, or open the service manually",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        // Wait for window to load
+        try {
+          aiWindow.onload = async () => {
+            // Give extra time for the UI to be fully ready
+            await new Promise((resolve) =>
+              setTimeout(resolve, service.id === "claude" ? 2000 : 1000)
+            );
+
+            // Attempt automatic paste
+            const success = await attemptAutoPaste(aiWindow);
+
+            if (success) {
+              toast({
+                title: "Success!",
+                description: "Code automatically pasted",
+              });
+            } else {
+              // Fallback to manual paste
+              toast({
+                description: `Please paste manually (${
+                  navigator.platform.includes("Mac") ? "⌘+V" : "Ctrl+V"
+                })`,
+              });
+            }
+          };
+        } catch (err) {
+          console.error("Error during auto-paste:", err);
+          // Fallback to manual paste
+          toast({
+            description: `Please paste manually (${
+              navigator.platform.includes("Mac") ? "⌘+V" : "Ctrl+V"
+            })`,
+          });
+        }
+      };
+
+      // Add a small delay for services that need it
+      if (service.waitBeforeOpen) {
+        setTimeout(openAIService, 500);
       } else {
-        toast({
-          title: `Code copied for ${service.name}!`,
-          description:
-            "Popup blocked, but you can still paste the code manually",
-        });
+        openAIService();
       }
     } catch (err) {
+      console.error("Error handling AI paste:", err);
       toast({
         title: "Failed to copy code",
-        description: "Please try again or copy manually",
+        description: "Please try copying manually",
         variant: "destructive",
       });
-      console.error("Error copying code:", err);
     }
   };
 
   // Function to handle snippet updates
   const handleUpdateSnippet = async () => {
-    if (!snippetId || !code.trim() || !user) {
+    if (!snippetId || !code.trim()) {
       return;
     }
 
     try {
-      const result = await updateSnippet({
+      const updateData: any = {
         snippetId,
         code,
         language,
-      });
+      };
+
+      // Include password if this is a password-protected snippet
+      if (editPassword) {
+        updateData.password = editPassword;
+      }
+
+      const result = await updateSnippet(updateData);
 
       if (result.success) {
         toast({
@@ -1028,10 +1309,10 @@ const PasteCodeEditor: React.FC = () => {
           description: "Snippet updated successfully",
         });
       }
-    } catch (error) {
+    } catch (err) {
       toast({
         title: "Error updating snippet",
-        description: error.message || "Please try again",
+        description: err instanceof Error ? err.message : "Please try again",
         variant: "destructive",
       });
     }
@@ -1047,10 +1328,10 @@ const PasteCodeEditor: React.FC = () => {
         setSnippetId(result.snippet.id);
         setIsEditing(true);
       }
-    } catch (error) {
+    } catch (err) {
       toast({
         title: "Error loading snippet",
-        description: error.message || "Please try again",
+        description: err instanceof Error ? err.message : "Please try again",
         variant: "destructive",
       });
     }
@@ -1079,7 +1360,7 @@ const PasteCodeEditor: React.FC = () => {
             </TabsList>
 
             <h1 className="text-xl font-bold text-center bg-gradient-to-r from-primary via-indigo-400 to-purple-500 bg-clip-text text-transparent drop-shadow-md">
-              Start Sharing Your Code
+              {isEditing ? "Edit Your Snippet" : "Start Sharing Your Code"}
             </h1>
 
             <Select value={language} onValueChange={handleLanguageChange}>
@@ -1105,6 +1386,12 @@ const PasteCodeEditor: React.FC = () => {
                 <div className="code-header flex items-center justify-between p-2 border-b">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-mono">{language}</span>
+                    {/* Show edit mode indicator */}
+                    {isEditing && (
+                      <span className="text-xs px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                        Edit Mode
+                      </span>
+                    )}
                     {/* Show validation status */}
                     {code.trim() && (
                       <span
@@ -1270,65 +1557,74 @@ const PasteCodeEditor: React.FC = () => {
 
           <div className="grid md:grid-cols-2 gap-3">
             <div className="bg-card rounded-lg border shadow-sm p-4">
-              <div className="mb-2 pb-2 border-b flex justify-between items-center">
-                <h3 className="text-sm font-semibold">
-                  {t("editor.shareOptions")}
-                </h3>
-                {generatedLink && (
-                  <div className="flex items-center ml-2">
-                    <a 
-                      href={generatedLink}
-                      target="_blank"
-                      rel="noopener noreferrer" 
-                      className="text-xs font-mono bg-secondary/50 px-2 py-1 rounded max-w-[280px] overflow-x-auto whitespace-nowrap mr-2 hover:bg-secondary/70 transition-colors"
-                    >
-                      {generatedLink}
-                    </a>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-7 w-7 p-0 flex-shrink-0"
-                      onClick={() =>
-                        copyToClipboard(generatedLink, t("actions.copy"))
-                      }
-                    >
-                      <Copy size={13} />
-                    </Button>
-                    {!user && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-7 ml-1 flex-shrink-0"
-                        disabled
-                        title="Sign in to edit this snippet"
+              <div className="mb-3 pb-3 border-b">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                  <h3 className="text-sm font-semibold">
+                    {t("editor.shareOptions")}
+                  </h3>
+                  {generatedLink && (
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 min-w-0">
+                      <a
+                        href={generatedLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs font-mono bg-secondary/50 px-2 py-1.5 rounded max-w-full overflow-x-auto whitespace-nowrap hover:bg-secondary/70 transition-colors break-all sm:max-w-[200px] lg:max-w-[280px]"
+                        title={generatedLink}
                       >
-                        <Save size={13} className="mr-1" />
-                        Edit
-                      </Button>
-                    )}
-                  </div>
-                )}
+                        {generatedLink}
+                      </a>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 w-7 p-0"
+                          onClick={() =>
+                            copyToClipboard(generatedLink, t("actions.copy"))
+                          }
+                          title="Copy link"
+                        >
+                          <Copy size={13} />
+                        </Button>
+                        {!user && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 px-2"
+                            disabled
+                            title="Sign in to edit this snippet"
+                          >
+                            <Save size={13} className="mr-1" />
+                            <span className="text-xs">Edit</span>
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <Form {...form}>
                 <form
                   onSubmit={form.handleSubmit(handleGenerateLink)}
-                  className="flex flex-wrap items-center gap-3"
+                  className="space-y-4"
                 >
-                  <div className="flex items-center gap-4 flex-1">
-                    <div className="flex items-center gap-2 bg-secondary/20 hover:bg-secondary/30 rounded-md p-1 pl-2 transition-colors">
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <div className="flex items-center gap-2 bg-secondary/20 hover:bg-secondary/30 rounded-md p-2 transition-colors flex-1 min-w-0">
                       <FormField
                         control={form.control}
                         name="expiration"
                         render={({ field }) => (
-                          <FormItem className="w-auto flex-shrink-0">
-                            <div className="flex items-center">
-                              <Clock size={15} className="text-primary mr-1.5" />
+                          <FormItem className="w-full">
+                            <div className="flex items-center w-full">
+                              <Clock
+                                size={15}
+                                className="text-primary mr-2 flex-shrink-0"
+                              />
                               <Select
                                 onValueChange={field.onChange}
                                 defaultValue={field.value}
                               >
-                                <SelectTrigger className="h-9 text-sm border-0 bg-transparent hover:bg-secondary/10 w-32 pl-0 rounded-none focus:ring-0 focus:ring-offset-0">
+                                <SelectTrigger className="h-8 text-sm border-0 bg-transparent hover:bg-secondary/10 w-full focus:ring-0 focus:ring-offset-0">
                                   <SelectValue
                                     placeholder={t("editor.expiration.1d")}
                                   />
@@ -1360,15 +1656,18 @@ const PasteCodeEditor: React.FC = () => {
                       />
                     </div>
 
-                    <div className="flex items-center bg-secondary/20 hover:bg-secondary/30 rounded-md p-1 pl-2 transition-colors">
+                    <div className="flex items-center bg-secondary/20 hover:bg-secondary/30 rounded-md p-2 transition-colors">
                       <FormField
                         control={form.control}
                         name="isPasswordProtected"
                         render={({ field }) => (
-                          <FormItem className="flex items-center gap-1.5 mt-0">
-                            <div className="flex items-center gap-1.5">
-                              <Lock size={15} className="text-primary" />
-                              <FormLabel className="text-sm cursor-not-allowed text-muted-foreground m-0">
+                          <FormItem className="flex items-center gap-2 mt-0">
+                            <div className="flex items-center gap-2">
+                              <Lock
+                                size={15}
+                                className="text-primary flex-shrink-0"
+                              />
+                              <FormLabel className="text-sm cursor-pointer m-0 whitespace-nowrap">
                                 {t("editor.password", "Password")}
                               </FormLabel>
                             </div>
@@ -1376,8 +1675,7 @@ const PasteCodeEditor: React.FC = () => {
                               <Checkbox
                                 checked={field.value}
                                 onCheckedChange={field.onChange}
-                                disabled={true}
-                                className="h-4 w-4 ml-0.5 text-primary"
+                                className="h-4 w-4 text-primary"
                               />
                             </FormControl>
                           </FormItem>
@@ -1386,9 +1684,39 @@ const PasteCodeEditor: React.FC = () => {
                     </div>
                   </div>
 
+                  {/* Password input field - shows when password protection is enabled */}
+                  {form.watch("isPasswordProtected") && (
+                    <div className="space-y-2">
+                      <FormField
+                        control={form.control}
+                        name="password"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-sm">
+                              Enter Password
+                            </FormLabel>
+                            <FormControl>
+                              <input
+                                type="password"
+                                placeholder="Enter a password to protect this snippet"
+                                className="w-full px-3 py-2 text-sm border border-input bg-background rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                                {...field}
+                              />
+                            </FormControl>
+                            {form.formState.errors.password && (
+                              <p className="text-sm text-destructive">
+                                {form.formState.errors.password.message}
+                              </p>
+                            )}
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  )}
+
                   <Button
                     type="submit"
-                    className="gap-1.5 bg-primary hover:bg-primary/90 text-sm h-9"
+                    className="gap-2 bg-primary hover:bg-primary/90 text-sm h-10 w-full sm:w-auto"
                     size="sm"
                     disabled={isGeneratingLink || !code.trim()}
                   >
@@ -1410,7 +1738,9 @@ const PasteCodeEditor: React.FC = () => {
                   <span className="text-sm text-muted-foreground flex items-center">
                     <Eye size={15} className="mr-1.5" /> {t("editor.views")}
                   </span>
-                  <span className="text-sm font-medium">{pasteStats.views}</span>
+                  <span className="text-sm font-medium">
+                    {pasteStats.views}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-muted-foreground flex items-center">
