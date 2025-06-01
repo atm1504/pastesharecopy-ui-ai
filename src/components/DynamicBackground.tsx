@@ -8,6 +8,7 @@ import {
   DialogTrigger,
 } from "./ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { submitGameScore } from "@/lib/api";
 
 // Add pulsing animation for the tutorial
 const pulseKeyframes = `
@@ -52,6 +53,10 @@ interface GameState {
   lastScoreUpdate: number;
   comboMultiplier: number;
   comboTimer: number;
+  sessionId: string;
+  sessionStartTime: number;
+  lastSubmissionScore: number;
+  maxComboReached: number;
 }
 
 // Improved throttle with proper TypeScript typing
@@ -95,6 +100,10 @@ const DynamicBackground: React.FC = () => {
     lastScoreUpdate: 0,
     comboMultiplier: 1,
     comboTimer: 0,
+    sessionId: "",
+    sessionStartTime: 0,
+    lastSubmissionScore: 0,
+    maxComboReached: 0,
   });
   const collectibleTimerRef = useRef(0);
 
@@ -288,11 +297,11 @@ const DynamicBackground: React.FC = () => {
   const getThemeColors = () => {
     if (isDarkMode) {
       return {
-        primary: [280, 80, 60], // Purple hue base
-        secondary: [260, 70, 50], // Indigo hue base
-        tertiary: [300, 75, 55], // Pink/magenta hue base
+        primary: [260, 90, 75], // Brighter blue-purple
+        secondary: [300, 85, 70], // Vibrant magenta-pink
+        tertiary: [180, 80, 65], // Bright cyan-teal
         background: "rgba(9, 6, 24, 0.05)",
-        blobOpacity: [0.6, 0.8],
+        blobOpacity: [0.7, 0.9], // Increased opacity for better visibility
       };
     } else {
       return {
@@ -353,7 +362,13 @@ const DynamicBackground: React.FC = () => {
 
     blobsRef.current = blobs;
 
-    // Reset game state
+    // Initialize new game session
+    const sessionId = `game_${Date.now()}_${Math.random()
+      .toString(36)
+      .substr(2, 9)}`;
+    const sessionStartTime = Date.now();
+
+    // Reset game state with session data
     gameStateRef.current = {
       score: 0,
       collectiblesFound: 0,
@@ -361,6 +376,10 @@ const DynamicBackground: React.FC = () => {
       lastScoreUpdate: 0,
       comboMultiplier: 1,
       comboTimer: 0,
+      sessionId: sessionId,
+      sessionStartTime: sessionStartTime,
+      lastSubmissionScore: 0,
+      maxComboReached: 1,
     };
 
     // Start spawning collectibles
@@ -383,23 +402,23 @@ const DynamicBackground: React.FC = () => {
     let collectibleType = "common";
     let basePoints = Math.floor(Math.random() * 20) + 10; // 10-30 points
     let collectibleColor = isDarkMode
-      ? `hsla(55, 100%, 70%, 1)`
-      : `hsla(30, 100%, 60%, 1)`;
+      ? `hsla(50, 100%, 85%, 1)` // Bright golden yellow for dark mode
+      : `hsla(45, 100%, 65%, 1)`; // Rich golden for light mode
     let size = Math.random() * 20 + 30;
 
     if (isSuperRare) {
       collectibleType = "legendary";
       basePoints = Math.floor(Math.random() * 100) + 100; // 100-200 points
       collectibleColor = isDarkMode
-        ? `hsla(300, 100%, 80%, 1)`
-        : `hsla(320, 100%, 60%, 1)`; // Purple
+        ? `hsla(285, 100%, 85%, 1)` // Bright purple-magenta for dark mode
+        : `hsla(285, 100%, 65%, 1)`; // Rich purple for light mode
       size = Math.random() * 40 + 50;
     } else if (isRareCollectible) {
       collectibleType = "rare";
       basePoints = Math.floor(Math.random() * 50) + 40; // 40-90 points
       collectibleColor = isDarkMode
-        ? `hsla(0, 100%, 70%, 1)`
-        : `hsla(15, 100%, 60%, 1)`; // Red
+        ? `hsla(350, 100%, 80%, 1)` // Bright red-pink for dark mode
+        : `hsla(350, 100%, 60%, 1)`; // Rich red for light mode
       size = Math.random() * 30 + 40;
     }
 
@@ -528,6 +547,11 @@ const DynamicBackground: React.FC = () => {
       gameState.comboMultiplier = 1;
     }
 
+    // Track max combo reached
+    if (gameState.comboMultiplier > gameState.maxComboReached) {
+      gameState.maxComboReached = gameState.comboMultiplier;
+    }
+
     // Rarity multipliers for psychological impact
     let rarityMultiplier = 1;
     if (blob.collectibleType === "rare") rarityMultiplier = 2;
@@ -607,10 +631,70 @@ const DynamicBackground: React.FC = () => {
       }
     }, 8000);
 
+    // Submit score to backend if enough points have been earned since last submission
+    const scoresSinceLastSubmission =
+      gameState.score - gameState.lastSubmissionScore;
+    if (scoresSinceLastSubmission >= 50) {
+      // Submit every 50 points
+      submitScoreToBackend();
+    }
+
     // Spawn next collectible with strategic delays
     const spawnDelay =
       gameState.comboMultiplier > 3 ? 300 : Math.random() * 1000 + 500;
     setTimeout(spawnCollectible, spawnDelay);
+  };
+
+  // Function to submit game score to backend
+  const submitScoreToBackend = async () => {
+    const gameState = gameStateRef.current;
+    const scoreToSubmit = gameState.score - gameState.lastSubmissionScore;
+
+    if (scoreToSubmit <= 0) return;
+
+    try {
+      const sessionDuration = Math.floor(
+        (Date.now() - gameState.sessionStartTime) / 1000
+      );
+
+      const response = await submitGameScore({
+        score: scoreToSubmit,
+        gameSessionId: gameState.sessionId,
+        duration: sessionDuration,
+        collectiblesFound: gameState.collectiblesFound,
+        maxComboMultiplier: gameState.maxComboReached,
+      });
+
+      // Update last submission score
+      gameState.lastSubmissionScore = gameState.score;
+
+      // Show achievement notifications for newly unlocked milestones
+      if (response.newlyUnlocked && response.newlyUnlocked.length > 0) {
+        response.newlyUnlocked.forEach((achievement, index) => {
+          setTimeout(() => {
+            toast({
+              title: `🎉 ${achievement.psychologyType} Unlocked!`,
+              description: `You earned ${achievement.reward}!`,
+              duration: 6000,
+            });
+          }, (index + 1) * 1000);
+        });
+      }
+
+      // Show additional paste links notification if any were earned
+      if (response.additionalLinksEarned > 0) {
+        setTimeout(() => {
+          toast({
+            title: `🔗 Daily Limit Increased!`,
+            description: `You now have ${response.totalAvailableLinks} daily pastes available!`,
+            duration: 5000,
+          });
+        }, 2000);
+      }
+    } catch (error) {
+      console.error("Failed to submit game score:", error);
+      // Don't show error to user to avoid breaking game flow
+    }
   };
 
   const drawBlobs = () => {
@@ -722,10 +806,26 @@ const DynamicBackground: React.FC = () => {
       const hslColor = (h: number, s: number, l: number, a: number) =>
         `hsla(${h}, ${s}%, ${l}%, ${a})`;
 
-      // Center color is lighter
-      gradient.addColorStop(0, hslColor(blob.hue, 80, 65, blob.opacity));
-      // Edge color is more saturated
-      gradient.addColorStop(1, hslColor(blob.hue, 85, 55, blob.opacity * 0.3));
+      // Enhanced gradients for better visibility in both themes
+      if (isDarkMode) {
+        // Brighter, more vibrant gradients for dark mode
+        gradient.addColorStop(0, hslColor(blob.hue, 90, 80, blob.opacity)); // Bright center
+        gradient.addColorStop(
+          0.5,
+          hslColor(blob.hue, 85, 70, blob.opacity * 0.8)
+        ); // Mid transition
+        gradient.addColorStop(
+          1,
+          hslColor(blob.hue, 80, 50, blob.opacity * 0.3)
+        ); // Darker edge
+      } else {
+        // Original gradients for light mode
+        gradient.addColorStop(0, hslColor(blob.hue, 80, 65, blob.opacity)); // Center color is lighter
+        gradient.addColorStop(
+          1,
+          hslColor(blob.hue, 85, 55, blob.opacity * 0.3)
+        ); // Edge color is more saturated
+      }
 
       // Draw actual blob shape with bezier curves
       const points = blob.isCollectible ? 10 : 8; // More points for collectibles = more detailed
@@ -803,35 +903,125 @@ const DynamicBackground: React.FC = () => {
           blob.radius
         );
 
-        // Brighter, more eye-catching gradient
-        collectibleGradient.addColorStop(
-          0,
-          `hsla(${blob.hue}, 100%, 80%, ${blob.opacity})`
-        );
-        collectibleGradient.addColorStop(
-          0.7,
-          `hsla(${blob.hue}, 90%, 65%, ${blob.opacity * 0.8})`
-        );
-        collectibleGradient.addColorStop(
-          1,
-          `hsla(${blob.hue}, 85%, 50%, ${blob.opacity * 0.4})`
-        );
+        // Enhanced gradients with better color progression for dark mode
+        if (isDarkMode) {
+          // Much brighter and more vibrant gradients for dark mode
+          if (blob.collectibleType === "legendary") {
+            collectibleGradient.addColorStop(
+              0,
+              `hsla(285, 100%, 95%, ${blob.opacity})`
+            ); // Very bright center
+            collectibleGradient.addColorStop(
+              0.3,
+              `hsla(285, 100%, 85%, ${blob.opacity * 0.9})`
+            ); // Bright middle
+            collectibleGradient.addColorStop(
+              0.7,
+              `hsla(300, 90%, 75%, ${blob.opacity * 0.8})`
+            ); // Transition
+            collectibleGradient.addColorStop(
+              1,
+              `hsla(315, 85%, 60%, ${blob.opacity * 0.5})`
+            ); // Edge
+          } else if (blob.collectibleType === "rare") {
+            collectibleGradient.addColorStop(
+              0,
+              `hsla(350, 100%, 90%, ${blob.opacity})`
+            ); // Very bright center
+            collectibleGradient.addColorStop(
+              0.3,
+              `hsla(350, 100%, 80%, ${blob.opacity * 0.9})`
+            ); // Bright middle
+            collectibleGradient.addColorStop(
+              0.7,
+              `hsla(340, 90%, 70%, ${blob.opacity * 0.8})`
+            ); // Transition
+            collectibleGradient.addColorStop(
+              1,
+              `hsla(330, 85%, 55%, ${blob.opacity * 0.5})`
+            ); // Edge
+          } else {
+            // Common collectibles
+            collectibleGradient.addColorStop(
+              0,
+              `hsla(50, 100%, 95%, ${blob.opacity})`
+            ); // Very bright center
+            collectibleGradient.addColorStop(
+              0.3,
+              `hsla(50, 100%, 85%, ${blob.opacity * 0.9})`
+            ); // Bright middle
+            collectibleGradient.addColorStop(
+              0.7,
+              `hsla(45, 90%, 75%, ${blob.opacity * 0.8})`
+            ); // Transition
+            collectibleGradient.addColorStop(
+              1,
+              `hsla(40, 85%, 60%, ${blob.opacity * 0.5})`
+            ); // Edge
+          }
+        } else {
+          // Light mode gradients (keep existing but enhance slightly)
+          collectibleGradient.addColorStop(
+            0,
+            `hsla(${blob.hue}, 100%, 85%, ${blob.opacity})`
+          );
+          collectibleGradient.addColorStop(
+            0.7,
+            `hsla(${blob.hue}, 90%, 70%, ${blob.opacity * 0.8})`
+          );
+          collectibleGradient.addColorStop(
+            1,
+            `hsla(${blob.hue}, 85%, 55%, ${blob.opacity * 0.4})`
+          );
+        }
 
         ctx.fillStyle = collectibleGradient;
         ctx.fill();
 
-        // Add glowing effect
-        ctx.shadowColor = `hsla(${blob.hue}, 90%, 70%, 0.8)`;
-        ctx.shadowBlur = 15;
-        ctx.fill();
-        ctx.shadowBlur = 0;
+        // Enhanced glowing effect for dark mode
+        if (isDarkMode) {
+          // Multiple glow layers for more dramatic effect
+          ctx.shadowColor = `hsla(${blob.hue}, 90%, 80%, 0.9)`;
+          ctx.shadowBlur = 25;
+          ctx.fill();
 
-        // Add inner ring for better visibility
+          // Second glow layer
+          ctx.shadowColor = `hsla(${blob.hue}, 85%, 70%, 0.6)`;
+          ctx.shadowBlur = 40;
+          ctx.fill();
+
+          ctx.shadowBlur = 0;
+        } else {
+          // Standard glow for light mode
+          ctx.shadowColor = `hsla(${blob.hue}, 90%, 70%, 0.8)`;
+          ctx.shadowBlur = 15;
+          ctx.fill();
+          ctx.shadowBlur = 0;
+        }
+
+        // Enhanced inner ring with better visibility in dark mode
         ctx.beginPath();
         ctx.arc(blob.x, blob.y, blob.radius * 0.6, 0, Math.PI * 2);
-        ctx.strokeStyle = `hsla(${blob.hue}, 90%, 75%, ${blob.opacity * 0.5})`;
-        ctx.lineWidth = 2;
+        if (isDarkMode) {
+          ctx.strokeStyle = `hsla(${blob.hue}, 95%, 85%, ${
+            blob.opacity * 0.7
+          })`;
+          ctx.lineWidth = 3; // Thicker ring for dark mode
+        } else {
+          ctx.strokeStyle = `hsla(${blob.hue}, 90%, 75%, ${
+            blob.opacity * 0.5
+          })`;
+          ctx.lineWidth = 2;
+        }
         ctx.stroke();
+
+        // Add additional inner sparkle effect for dark mode
+        if (isDarkMode) {
+          ctx.beginPath();
+          ctx.arc(blob.x, blob.y, blob.radius * 0.3, 0, Math.PI * 2);
+          ctx.fillStyle = `hsla(${blob.hue}, 100%, 95%, ${blob.opacity * 0.6})`;
+          ctx.fill();
+        }
       } else {
         // Regular blobs use standard gradient
         ctx.fillStyle = gradient;
@@ -890,11 +1080,79 @@ const DynamicBackground: React.FC = () => {
     }
 
     return () => {
+      // Submit final score before cleanup
+      const gameState = gameStateRef.current;
+      if (
+        gameState.sessionId &&
+        gameState.score > gameState.lastSubmissionScore
+      ) {
+        // Fire and forget - don't wait for response
+        submitScoreToBackend();
+      }
+
       if (typeof cleanup === "function") cleanup();
       cancelAnimationFrame(animationFrameRef.current);
       clearTimeout(collectibleTimerRef.current);
     };
   }, [resolvedTheme]); // Depend on resolvedTheme to properly handle theme changes
+
+  // Add session cleanup for inactive users
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // User switched tabs/minimized - submit current score
+        const gameState = gameStateRef.current;
+        if (
+          gameState.sessionId &&
+          gameState.score > gameState.lastSubmissionScore
+        ) {
+          submitScoreToBackend();
+        }
+      }
+    };
+
+    const handleBeforeUnload = () => {
+      // User is leaving the page - submit final score
+      const gameState = gameStateRef.current;
+      if (
+        gameState.sessionId &&
+        gameState.score > gameState.lastSubmissionScore
+      ) {
+        // Use navigator.sendBeacon for reliable data submission on page unload
+        const scoreToSubmit = gameState.score - gameState.lastSubmissionScore;
+        if (scoreToSubmit > 0) {
+          const sessionDuration = Math.floor(
+            (Date.now() - gameState.sessionStartTime) / 1000
+          );
+
+          // Simplified data for beacon - just score submission
+          try {
+            navigator.sendBeacon(
+              "/api/submitFinalScore",
+              JSON.stringify({
+                score: scoreToSubmit,
+                gameSessionId: gameState.sessionId,
+                duration: sessionDuration,
+                collectiblesFound: gameState.collectiblesFound,
+                maxComboMultiplier: gameState.maxComboReached,
+              })
+            );
+          } catch (error) {
+            // Fallback to regular API call
+            submitScoreToBackend();
+          }
+        }
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, []);
 
   // Add custom animation styles
   useEffect(() => {

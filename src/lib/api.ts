@@ -390,3 +390,225 @@ export const updateSnippet = async (data: UpdateSnippetRequest) => {
     throw new Error(errorMessage);
   }
 };
+
+// Game API functions
+export interface SubmitGameScoreRequest {
+  score: number;
+  gameSessionId?: string;
+  duration?: number;
+  collectiblesFound?: number;
+  maxComboMultiplier?: number;
+}
+
+export interface SubmitGameScoreResponse {
+  success: boolean;
+  gameSessionId: string;
+  previousGamePoints: number;
+  currentGamePoints: number;
+  scoreAdded: number;
+  previousDailyLimit: number;
+  newDailyLimit: number;
+  additionalLinksEarned: number;
+  totalAvailableLinks: number;
+  newlyUnlocked: Array<{
+    tier: number;
+    points: number;
+    reward: string;
+    psychologyType: string;
+    extraLinks: number;
+  }>;
+  milestones: Array<{
+    tier: number;
+    points: number;
+    extraLinks: number;
+    reward: string;
+    psychologyType: string;
+    urgency: string;
+    achieved: boolean;
+  }>;
+}
+
+export interface GameStatsResponse {
+  success: boolean;
+  currentGamePoints: number;
+  currentDailyLimit: number;
+  totalSessions: number;
+  totalScore: number;
+  highScore: number;
+  averageScore: number;
+  totalCollectibles: number;
+  bestComboMultiplier: number;
+  recentSessions: Array<{
+    sessionId: string;
+    score: number;
+    duration?: number;
+    collectiblesFound: number;
+    maxComboMultiplier: number;
+    additionalLinksEarned: number;
+    createdAt?: string;
+  }>;
+  nextMilestone?: {
+    tier: number;
+    points: number;
+    extraLinks: number;
+    reward: string;
+    psychologyType: string;
+    urgency: string;
+    progress: number;
+    remaining: number;
+  };
+  achievementsUnlocked: Array<{
+    tier: number;
+    points: number;
+    reward: string;
+    psychologyType: string;
+    extraLinks: number;
+  }>;
+  totalAchievements: number;
+  availableAchievements: number;
+}
+
+export interface LeaderboardResponse {
+  success: boolean;
+  leaderboard: Array<{
+    rank: number;
+    displayName: string;
+    gamePoints: number;
+    dailyLimit: number;
+    isAuthenticated: boolean;
+  }>;
+  totalEntries: number;
+}
+
+export interface AchievementProgressResponse {
+  success: boolean;
+  currentGamePoints: number;
+  currentDailyLimit: number;
+  achievements: Array<{
+    tier: number;
+    points: number;
+    extraLinks: number;
+    reward: string;
+    psychologyType: string;
+    urgency: string;
+    achieved: boolean;
+    isNext: boolean;
+    progress: number;
+    remaining: number;
+  }>;
+  totalAchieved: number;
+  totalAvailable: number;
+}
+
+export const submitGameScore = async (
+  scoreData: SubmitGameScoreRequest
+): Promise<SubmitGameScoreResponse> => {
+  try {
+    const deviceId = getDeviceId();
+    const submitGameScoreFn = httpsCallable(functions, "submit_game_score");
+
+    const requestData = {
+      ...scoreData,
+      deviceId,
+    };
+
+    const result = await submitGameScoreFn(requestData);
+    return result.data as SubmitGameScoreResponse;
+  } catch (error: unknown) {
+    console.error("Error submitting game score:", error);
+
+    if (isFirebaseError(error)) {
+      if (error.code === "functions/invalid-argument") {
+        throw new Error("Invalid game session detected");
+      } else if (error.code === "functions/unauthenticated") {
+        throw new Error("Authentication or device ID is required");
+      } else if (error.code === "functions/not-found") {
+        throw new Error("User not found");
+      }
+    }
+
+    const errorMessage =
+      error instanceof Error ? error.message : "Failed to submit game score";
+    throw new Error(errorMessage);
+  }
+};
+
+export const getGameStats = async (): Promise<GameStatsResponse> => {
+  try {
+    const deviceId = getDeviceId();
+    const getGameStatsFn = httpsCallable(functions, "get_game_stats");
+
+    const result = await getGameStatsFn({
+      deviceId,
+    });
+
+    return result.data as GameStatsResponse;
+  } catch (error: unknown) {
+    console.error("Error getting game stats:", error);
+
+    if (isFirebaseError(error)) {
+      if (error.code === "functions/unauthenticated") {
+        throw new Error("Authentication or device ID is required");
+      } else if (error.code === "functions/not-found") {
+        throw new Error("User not found");
+      }
+    }
+
+    const errorMessage =
+      error instanceof Error ? error.message : "Failed to retrieve game stats";
+    throw new Error(errorMessage);
+  }
+};
+
+export const getLeaderboard = async (
+  limit: number = 10
+): Promise<LeaderboardResponse> => {
+  try {
+    const getLeaderboardFn = httpsCallable(functions, "get_leaderboard");
+
+    const result = await getLeaderboardFn({
+      limit,
+    });
+
+    return result.data as LeaderboardResponse;
+  } catch (error: unknown) {
+    console.error("Error getting leaderboard:", error);
+
+    const errorMessage =
+      error instanceof Error ? error.message : "Failed to retrieve leaderboard";
+    throw new Error(errorMessage);
+  }
+};
+
+export const getAchievementProgress =
+  async (): Promise<AchievementProgressResponse> => {
+    try {
+      const deviceId = getDeviceId();
+      const getAchievementProgressFn = httpsCallable(
+        functions,
+        "get_achievement_progress"
+      );
+
+      const result = await getAchievementProgressFn({
+        deviceId,
+      });
+
+      return result.data as AchievementProgressResponse;
+    } catch (error: unknown) {
+      console.error("Error getting achievement progress:", error);
+
+      if (isFirebaseError(error)) {
+        if (error.code === "functions/unauthenticated") {
+          throw new Error("Authentication or device ID is required");
+        } else if (error.code === "functions/not-found") {
+          throw new Error("User not found");
+        }
+      }
+
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to retrieve achievement progress";
+      throw new Error(errorMessage);
+    }
+  };
