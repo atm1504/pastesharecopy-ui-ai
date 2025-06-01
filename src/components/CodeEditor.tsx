@@ -69,11 +69,28 @@ import { useLocation } from "react-router-dom";
 // Import light theme for hljs
 import "highlight.js/styles/github.css";
 
-const formSchema = z.object({
-  expiration: z.string().min(1),
-  isPasswordProtected: z.boolean().default(false),
-  password: z.string().optional(),
-});
+const formSchema = z
+  .object({
+    expiration: z.string().min(1),
+    isPasswordProtected: z.boolean().default(false),
+    password: z.string().optional(),
+  })
+  .refine(
+    (data) => {
+      // If password protection is enabled, password must be provided
+      if (
+        data.isPasswordProtected &&
+        (!data.password || data.password.trim() === "")
+      ) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: "Password is required when password protection is enabled",
+      path: ["password"],
+    }
+  );
 
 type FormValues = z.infer<typeof formSchema>;
 
@@ -831,6 +848,7 @@ const PasteCodeEditor: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>("editor");
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [snippetId, setSnippetId] = useState<string | null>(null);
+  const [editPassword, setEditPassword] = useState<string | null>(null);
   const [validation, setValidation] = useState<{
     isValid: boolean;
     error?: string;
@@ -899,6 +917,8 @@ const PasteCodeEditor: React.FC = () => {
       title: string;
       expiresAt: any;
       isConfidential: boolean;
+      isPasswordProtected?: boolean;
+      password?: string;
     } | null;
 
     console.log("CodeEditor: Location state changed", {
@@ -913,6 +933,11 @@ const PasteCodeEditor: React.FC = () => {
       setSnippetId(state.snippetId);
       setCode(state.code);
       setLanguage(state.language);
+
+      // Store password for editing password-protected snippets
+      if (state.isPasswordProtected && state.password) {
+        setEditPassword(state.password);
+      }
 
       // Set the generated link if we have the shortUrl
       if (state.shortUrl) {
@@ -980,6 +1005,8 @@ const PasteCodeEditor: React.FC = () => {
         title: `${language} snippet`, // You could make this configurable
         expiration: values.expiration,
         isConfidential: false, // For now, no confidential snippets in free version
+        isPasswordProtected: values.isPasswordProtected,
+        password: values.isPasswordProtected ? values.password : undefined,
       };
 
       const result = await createSnippet(snippetData);
@@ -1258,16 +1285,23 @@ const PasteCodeEditor: React.FC = () => {
 
   // Function to handle snippet updates
   const handleUpdateSnippet = async () => {
-    if (!snippetId || !code.trim() || !user) {
+    if (!snippetId || !code.trim()) {
       return;
     }
 
     try {
-      const result = await updateSnippet({
+      const updateData: any = {
         snippetId,
         code,
         language,
-      });
+      };
+
+      // Include password if this is a password-protected snippet
+      if (editPassword) {
+        updateData.password = editPassword;
+      }
+
+      const result = await updateSnippet(updateData);
 
       if (result.success) {
         toast({
@@ -1633,7 +1667,7 @@ const PasteCodeEditor: React.FC = () => {
                                 size={15}
                                 className="text-primary flex-shrink-0"
                               />
-                              <FormLabel className="text-sm cursor-not-allowed text-muted-foreground m-0 whitespace-nowrap">
+                              <FormLabel className="text-sm cursor-pointer m-0 whitespace-nowrap">
                                 {t("editor.password", "Password")}
                               </FormLabel>
                             </div>
@@ -1641,7 +1675,6 @@ const PasteCodeEditor: React.FC = () => {
                               <Checkbox
                                 checked={field.value}
                                 onCheckedChange={field.onChange}
-                                disabled={true}
                                 className="h-4 w-4 text-primary"
                               />
                             </FormControl>
@@ -1650,6 +1683,36 @@ const PasteCodeEditor: React.FC = () => {
                       />
                     </div>
                   </div>
+
+                  {/* Password input field - shows when password protection is enabled */}
+                  {form.watch("isPasswordProtected") && (
+                    <div className="space-y-2">
+                      <FormField
+                        control={form.control}
+                        name="password"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-sm">
+                              Enter Password
+                            </FormLabel>
+                            <FormControl>
+                              <input
+                                type="password"
+                                placeholder="Enter a password to protect this snippet"
+                                className="w-full px-3 py-2 text-sm border border-input bg-background rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                                {...field}
+                              />
+                            </FormControl>
+                            {form.formState.errors.password && (
+                              <p className="text-sm text-destructive">
+                                {form.formState.errors.password.message}
+                              </p>
+                            )}
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  )}
 
                   <Button
                     type="submit"
