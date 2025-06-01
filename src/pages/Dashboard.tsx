@@ -597,7 +597,7 @@ const Dashboard: React.FC<DashboardProps> = ({ view = "links" }) => {
                                 asChild
                               >
                                 <a
-                                  href={`https://pastesharecopy.com/${snippet.shortUrl}`}
+                                  href={`${window.location.origin}/${snippet.shortUrl}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                 >
@@ -609,7 +609,7 @@ const Dashboard: React.FC<DashboardProps> = ({ view = "links" }) => {
                               </Button>
                             </div>
                             <div className="mt-2 text-xs bg-muted p-2 rounded font-mono truncate">
-                              pastesharecopy.com/{snippet.shortUrl}
+                              {window.location.host}/{snippet.shortUrl}
                             </div>
                             {snippet.expiresAt &&
                               !isExpired(snippet.expiresAt) && (

@@ -289,7 +289,7 @@ export const LinkListSidebar: React.FC<LinkListSidebarProps> = ({
                             asChild
                           >
                             <a
-                              href={`https://pastesharecopy.com/${snippet.shortUrl}`}
+                              href={`${window.location.origin}/${snippet.shortUrl}`}
                               target="_blank"
                               rel="noopener noreferrer"
                             >
@@ -303,7 +303,7 @@ export const LinkListSidebar: React.FC<LinkListSidebarProps> = ({
 
                         <div className="mt-3">
                           <div className="text-xs bg-muted p-2 rounded font-mono truncate">
-                            pastesharecopy.com/{snippet.shortUrl}
+                            {window.location.host}/{snippet.shortUrl}
                           </div>
                           <div
                             className="text-xs text-muted-foreground mt-1 overflow-hidden"
