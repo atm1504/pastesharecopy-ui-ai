@@ -60,6 +60,7 @@ import {
   createSnippet,
   CreateSnippetRequest,
   updateSnippet,
+  UpdateSnippetRequest,
   getSnippet,
 } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
@@ -69,30 +70,36 @@ import { useLocation } from "react-router-dom";
 // Import light theme for hljs
 import "highlight.js/styles/github.css";
 
-const formSchema = z
-  .object({
-    expiration: z.string().min(1),
-    isPasswordProtected: z.boolean().default(false),
-    password: z.string().optional(),
-  })
-  .refine(
-    (data) => {
-      // If password protection is enabled, password must be provided
-      if (
-        data.isPasswordProtected &&
-        (!data.password || data.password.trim() === "")
-      ) {
-        return false;
-      }
-      return true;
-    },
-    {
-      message: "Password is required when password protection is enabled",
-      path: ["password"],
-    }
-  );
+// Add type for API responses
+interface UpdateSnippetData {
+  snippetId: string;
+  code: string;
+  language: string;
+  password?: string;
+}
+
+interface UpdateSnippetResponse {
+  success: boolean;
+  message?: string;
+}
+
+interface CreateSnippetResponse {
+  success: boolean;
+  shortUrl: string;
+  remainingLinks: number;
+}
+
+// Update the form schema to include edit mode fields
+const formSchema = z.object({
+  expiration: z.string(),
+  isPasswordProtected: z.boolean(),
+  password: z.string().optional(),
+  editPassword: z.string().optional(),
+});
 
 type FormValues = z.infer<typeof formSchema>;
+
+type EditorMode = 'new' | 'edit';
 
 // Sample code for different languages
 const languageSamples = {
@@ -840,6 +847,19 @@ const renderPreview = (
   }
 };
 
+interface EditorState {
+  editMode: boolean;
+  snippetId: string;
+  shortUrl: string;
+  code: string;
+  language: string;
+  title: string;
+  expiresAt: string | null;
+  isConfidential: boolean;
+  isPasswordProtected: boolean;
+  password?: string;
+}
+
 const PasteCodeEditor: React.FC = () => {
   const [code, setCode] = useState<string>("");
   const [language, setLanguage] = useState<string>("javascript");
@@ -849,6 +869,8 @@ const PasteCodeEditor: React.FC = () => {
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [snippetId, setSnippetId] = useState<string | null>(null);
   const [editPassword, setEditPassword] = useState<string | null>(null);
+  const [editorMode, setEditorMode] = useState<EditorMode>('new');
+  const [isPasswordProtected, setIsPasswordProtected] = useState(false);
   const [validation, setValidation] = useState<{
     isValid: boolean;
     error?: string;
@@ -908,18 +930,7 @@ const PasteCodeEditor: React.FC = () => {
 
   // Handle edit mode from snippet view
   useEffect(() => {
-    const state = location.state as {
-      editMode: boolean;
-      snippetId: string;
-      shortUrl: string;
-      code: string;
-      language: string;
-      title: string;
-      expiresAt: any;
-      isConfidential: boolean;
-      isPasswordProtected?: boolean;
-      password?: string;
-    } | null;
+    const state = location.state as EditorState | null;
 
     console.log("CodeEditor: Location state changed", {
       state,
@@ -986,11 +997,11 @@ const PasteCodeEditor: React.FC = () => {
     setCode(e.target.value);
   };
 
-  const handleGenerateLink = async (values: FormValues) => {
+  const handleSubmit = async (values: FormValues) => {
     if (!code.trim()) {
       toast({
         title: "Error",
-        description: "Please add some code before generating a link.",
+        description: "Please add some code before proceeding.",
         variant: "destructive",
       });
       return;
@@ -999,48 +1010,62 @@ const PasteCodeEditor: React.FC = () => {
     setIsGeneratingLink(true);
 
     try {
-      const snippetData: CreateSnippetRequest = {
-        code: code,
-        language: language,
-        title: `${language} snippet`, // You could make this configurable
-        expiration: values.expiration,
-        isConfidential: false, // For now, no confidential snippets in free version
-        isPasswordProtected: values.isPasswordProtected,
-        password: values.isPasswordProtected ? values.password : undefined,
-      };
+      if (editorMode === 'edit' && snippetId) {
+        // Handle edit mode
+        const updateData: UpdateSnippetRequest = {
+          snippetId,
+          code,
+          language,
+          password: values.editPassword
+        };
 
-      const result = await createSnippet(snippetData);
+        const result = await updateSnippet(updateData);
+        if (result.success) {
+          toast({
+            title: "Success",
+            description: "Snippet updated successfully",
+          });
+        }
+      } else {
+        // Handle new link mode
+        const snippetData: CreateSnippetRequest = {
+          code: code,
+          language: language,
+          title: `${language} snippet`,
+          expiration: values.expiration,
+          isConfidential: false,
+          isPasswordProtected: values.isPasswordProtected,
+          password: values.isPasswordProtected ? values.password : undefined,
+        };
 
-      // Get the base URL from the current window location
-      const baseUrl = window.location.origin;
-      const fullUrl = `${baseUrl}/${result.shortUrl}`;
-      setGeneratedLink(fullUrl);
-      setRemainingLinks(result.remainingLinks);
+        const result = await createSnippet(snippetData);
+        const baseUrl = window.location.origin;
+        const fullUrl = `${baseUrl}/${result.shortUrl}`;
+        setGeneratedLink(fullUrl);
+        setRemainingLinks(result.remainingLinks);
 
-      toast({
-        title: "Link generated successfully!",
-        description: `Your code snippet is now shareable. ${
-          result.remainingLinks >= 0
-            ? `You have ${result.remainingLinks} snippets remaining.`
-            : "You have unlimited snippets."
-        }`,
-      });
-    } catch (error) {
-      console.error("Error generating link:", error);
-
-      // Handle specific error cases
-      if (error.message.includes("snippet limit")) {
+        toast({
+          title: "Success",
+          description: `Your code snippet is now shareable. ${
+            result.remainingLinks >= 0
+              ? `You have ${result.remainingLinks} snippets remaining.`
+              : "You have unlimited snippets."
+          }`,
+        });
+      }
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
+      
+      if (errorMessage.includes("snippet limit")) {
         toast({
           title: "Snippet Limit Reached",
-          description:
-            "You've reached your snippet limit. Upgrade to premium for unlimited snippets!",
+          description: "You've reached your snippet limit. Upgrade to premium for unlimited snippets!",
           variant: "destructive",
           action: (
             <Button
               variant="outline"
               size="sm"
               onClick={() => {
-                // Redirect to premium page
                 window.location.href = "/premium";
               }}
             >
@@ -1048,17 +1073,10 @@ const PasteCodeEditor: React.FC = () => {
             </Button>
           ),
         });
-      } else if (error.message.includes("Confidential snippets")) {
-        toast({
-          title: "Premium Feature",
-          description:
-            "Confidential snippets are only available for premium users.",
-          variant: "destructive",
-        });
       } else {
         toast({
-          title: "Error generating link",
-          description: error.message || "Please try again in a moment.",
+          title: editorMode === 'edit' ? "Error updating snippet" : "Error generating link",
+          description: errorMessage,
           variant: "destructive",
         });
       }
@@ -1283,62 +1301,38 @@ const PasteCodeEditor: React.FC = () => {
     }
   };
 
-  // Function to handle snippet updates
-  const handleUpdateSnippet = async () => {
-    if (!snippetId || !code.trim()) {
-      return;
-    }
-
-    try {
-      const updateData: any = {
-        snippetId,
-        code,
-        language,
-      };
-
-      // Include password if this is a password-protected snippet
-      if (editPassword) {
-        updateData.password = editPassword;
-      }
-
-      const result = await updateSnippet(updateData);
-
-      if (result.success) {
-        toast({
-          title: "Success",
-          description: "Snippet updated successfully",
-        });
-      }
-    } catch (err) {
-      toast({
-        title: "Error updating snippet",
-        description: err instanceof Error ? err.message : "Please try again",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // Function to load a snippet for editing
-  const loadSnippetForEdit = async (shortUrl: string) => {
-    try {
-      const result = await getSnippet(shortUrl);
-      if (result.success) {
-        setCode(result.snippet.content);
-        setLanguage(result.snippet.language);
-        setSnippetId(result.snippet.id);
-        setIsEditing(true);
-      }
-    } catch (err) {
-      toast({
-        title: "Error loading snippet",
-        description: err instanceof Error ? err.message : "Please try again",
-        variant: "destructive",
-      });
-    }
-  };
-
   // Check if current user can edit
   const canEdit = user && snippetId;
+
+  // Add mode toggle function
+  const toggleEditorMode = () => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to switch editor modes",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Clear form when switching to new mode
+    if (editorMode === 'edit') {
+      setCode("");
+      setLanguage("javascript");
+      setGeneratedLink(null);
+      setSnippetId(null);
+      setEditPassword(null);
+      form.reset();
+    }
+    
+    setEditorMode(editorMode === 'new' ? 'edit' : 'new');
+  };
+
+  // Handle button click for form submission
+  const handleButtonClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    form.handleSubmit(handleSubmit)();
+  };
 
   return (
     <div className="space-y-4">
@@ -1350,17 +1344,40 @@ const PasteCodeEditor: React.FC = () => {
           onValueChange={setActiveTab}
         >
           <div className="flex items-center justify-between mb-1">
-            <TabsList className="h-10">
-              <TabsTrigger value="editor" className="text-sm">
-                Editor
-              </TabsTrigger>
-              <TabsTrigger value="preview" className="text-sm">
-                Preview
-              </TabsTrigger>
-            </TabsList>
+            <div className="flex items-center gap-4">
+              <TabsList className="h-10">
+                <TabsTrigger value="editor" className="text-sm">
+                  Editor
+                </TabsTrigger>
+                <TabsTrigger value="preview" className="text-sm">
+                  Preview
+                </TabsTrigger>
+              </TabsList>
+              
+              {user && (
+                <div className="flex items-center gap-2 border rounded-lg p-1">
+                  <Button
+                    variant={editorMode === 'new' ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setEditorMode('new')}
+                    className="text-xs"
+                  >
+                    New Link
+                  </Button>
+                  <Button
+                    variant={editorMode === 'edit' ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setEditorMode('edit')}
+                    className="text-xs"
+                  >
+                    Edit Mode
+                  </Button>
+                </div>
+              )}
+            </div>
 
             <h1 className="text-xl font-bold text-center bg-gradient-to-r from-primary via-indigo-400 to-purple-500 bg-clip-text text-transparent drop-shadow-md">
-              {isEditing ? "Edit Your Snippet" : "Start Sharing Your Code"}
+              {editorMode === 'edit' ? "Edit Your Snippet" : "Create New Snippet"}
             </h1>
 
             <Select value={language} onValueChange={handleLanguageChange}>
@@ -1386,10 +1403,17 @@ const PasteCodeEditor: React.FC = () => {
                 <div className="code-header flex items-center justify-between p-2 border-b">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-mono">{language}</span>
-                    {/* Show edit mode indicator */}
-                    {isEditing && (
-                      <span className="text-xs px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">
-                        Edit Mode
+                    {/* Mode indicator */}
+                    <span className={`text-xs px-2 py-0.5 rounded ${
+                      editorMode === 'edit' 
+                        ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                        : 'bg-green-500/20 text-green-400 border border-green-500/30'
+                    }`}>
+                      {editorMode === 'edit' ? 'Edit Mode' : 'New Link Mode'}
+                    </span>
+                    {!user && (
+                      <span className="text-xs text-muted-foreground">
+                        Sign in to switch modes
                       </span>
                     )}
                     {/* Show validation status */}
@@ -1411,14 +1435,14 @@ const PasteCodeEditor: React.FC = () => {
                     )}
                     {isEditing && (
                       <Button
-                        onClick={handleUpdateSnippet}
+                        onClick={handleButtonClick}
                         disabled={!canEdit}
                         variant="outline"
                         className="gap-2 ml-2"
                         size="sm"
                       >
                         <Save className="h-4 w-4" />
-                        Save Changes
+                        {editorMode === 'edit' ? "Save Changes" : "Generate Link"}
                       </Button>
                     )}
                     {!user && isEditing && (
@@ -1604,127 +1628,135 @@ const PasteCodeEditor: React.FC = () => {
               </div>
 
               <Form {...form}>
-                <form
-                  onSubmit={form.handleSubmit(handleGenerateLink)}
-                  className="space-y-4"
-                >
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <div className="flex items-center gap-2 bg-secondary/20 hover:bg-secondary/30 rounded-md p-2 transition-colors flex-1 min-w-0">
-                      <FormField
-                        control={form.control}
-                        name="expiration"
-                        render={({ field }) => (
-                          <FormItem className="w-full">
-                            <div className="flex items-center w-full">
-                              <Clock
-                                size={15}
-                                className="text-primary mr-2 flex-shrink-0"
-                              />
-                              <Select
-                                onValueChange={field.onChange}
-                                defaultValue={field.value}
-                              >
-                                <SelectTrigger className="h-8 text-sm border-0 bg-transparent hover:bg-secondary/10 w-full focus:ring-0 focus:ring-offset-0">
-                                  <SelectValue
-                                    placeholder={t("editor.expiration.1d")}
-                                  />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="1d">
-                                    {t("editor.expiration.1d")}
-                                  </SelectItem>
-                                  <SelectItem value="2d">
-                                    {t("editor.expiration.2d")}
-                                  </SelectItem>
-                                  <SelectItem value="3d">
-                                    {t("editor.expiration.3d")}
-                                  </SelectItem>
-                                  <SelectItem value="7d">
-                                    {t("editor.expiration.7d")}
-                                  </SelectItem>
-                                  <SelectItem value="30d" disabled>
-                                    30 days (Premium)
-                                  </SelectItem>
-                                  <SelectItem value="never" disabled>
-                                    Never (Premium)
-                                  </SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <div className="flex items-center bg-secondary/20 hover:bg-secondary/30 rounded-md p-2 transition-colors">
-                      <FormField
-                        control={form.control}
-                        name="isPasswordProtected"
-                        render={({ field }) => (
-                          <FormItem className="flex items-center gap-2 mt-0">
-                            <div className="flex items-center gap-2">
-                              <Lock
-                                size={15}
-                                className="text-primary flex-shrink-0"
-                              />
-                              <FormLabel className="text-sm cursor-pointer m-0 whitespace-nowrap">
-                                {t("editor.password", "Password")}
-                              </FormLabel>
-                            </div>
-                            <FormControl>
-                              <Checkbox
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                                className="h-4 w-4 text-primary"
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Password input field - shows when password protection is enabled */}
-                  {form.watch("isPasswordProtected") && (
-                    <div className="space-y-2">
-                      <FormField
-                        control={form.control}
-                        name="password"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-sm">
-                              Enter Password
-                            </FormLabel>
-                            <FormControl>
-                              <input
-                                type="password"
-                                placeholder="Enter a password to protect this snippet"
-                                className="w-full px-3 py-2 text-sm border border-input bg-background rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-                                {...field}
-                              />
-                            </FormControl>
-                            {form.formState.errors.password && (
-                              <p className="text-sm text-destructive">
-                                {form.formState.errors.password.message}
-                              </p>
+                <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+                  {editorMode === 'edit' ? (
+                    <>
+                      {/* Edit mode options */}
+                      {isPasswordProtected && (
+                        <FormField
+                          control={form.control}
+                          name="editPassword"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-sm">Edit Password</FormLabel>
+                              <FormControl>
+                                <input
+                                  type="password"
+                                  placeholder="Enter the edit password"
+                                  className="w-full px-3 py-2 text-sm border border-input bg-background rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                                  {...field}
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                      )}
+                      <Button
+                        onClick={handleButtonClick}
+                        type="button"
+                        className="gap-2 bg-primary hover:bg-primary/90 text-sm h-10 w-full sm:w-auto"
+                        disabled={isGeneratingLink || !code.trim() || !user}
+                      >
+                        <Save size={15} />
+                        {isGeneratingLink ? "Saving..." : "Save Changes"}
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      {/* New link mode options */}
+                      <div className="flex flex-wrap gap-4">
+                        <div className="flex items-center gap-2 bg-secondary/20 hover:bg-secondary/30 rounded-md p-2 transition-colors flex-1 min-w-0">
+                          <Clock size={15} className="text-primary flex-shrink-0" />
+                          <FormField
+                            control={form.control}
+                            name="expiration"
+                            render={({ field }) => (
+                              <FormItem className="flex-1">
+                                <Select
+                                  value={field.value}
+                                  onValueChange={field.onChange}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select expiration" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="1d">1 day</SelectItem>
+                                    <SelectItem value="2d">2 days</SelectItem>
+                                    <SelectItem value="3d">3 days</SelectItem>
+                                    <SelectItem value="7d">7 days</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </FormItem>
                             )}
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  )}
+                          />
+                        </div>
 
-                  <Button
-                    type="submit"
-                    className="gap-2 bg-primary hover:bg-primary/90 text-sm h-10 w-full sm:w-auto"
-                    size="sm"
-                    disabled={isGeneratingLink || !code.trim()}
-                  >
-                    <LinkIcon size={15} />
-                    {isGeneratingLink
-                      ? t("actions.generating", "Generating...")
-                      : t("actions.generateLink", "Generate link")}
-                  </Button>
+                        <div className="flex items-center bg-secondary/20 hover:bg-secondary/30 rounded-md p-2 transition-colors">
+                          <FormField
+                            control={form.control}
+                            name="isPasswordProtected"
+                            render={({ field }) => (
+                              <FormItem className="flex items-center gap-2 mt-0">
+                                <div className="flex items-center gap-2">
+                                  <Lock
+                                    size={15}
+                                    className="text-primary flex-shrink-0"
+                                  />
+                                  <FormLabel className="text-sm cursor-pointer m-0 whitespace-nowrap">
+                                    Password Protected
+                                  </FormLabel>
+                                </div>
+                                <FormControl>
+                                  <Checkbox
+                                    checked={field.value}
+                                    onCheckedChange={(checked) => {
+                                      field.onChange(checked);
+                                      setIsPasswordProtected(!!checked);
+                                    }}
+                                    className="h-4 w-4 text-primary"
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </div>
+
+                      {form.watch("isPasswordProtected") && (
+                        <div className="space-y-2">
+                          <FormField
+                            control={form.control}
+                            name="password"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-sm">
+                                  Enter Password
+                                </FormLabel>
+                                <FormControl>
+                                  <input
+                                    type="password"
+                                    placeholder="Enter a password to protect this snippet"
+                                    className="w-full px-3 py-2 text-sm border border-input bg-background rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                                    {...field}
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      )}
+
+                      <Button
+                        onClick={handleButtonClick}
+                        type="button"
+                        className="gap-2 bg-primary hover:bg-primary/90 text-sm h-10 w-full sm:w-auto"
+                        disabled={isGeneratingLink || !code.trim()}
+                      >
+                        <LinkIcon size={15} />
+                        {isGeneratingLink ? "Generating..." : "Generate Link"}
+                      </Button>
+                    </>
+                  )}
                 </form>
               </Form>
             </div>

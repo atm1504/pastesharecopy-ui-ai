@@ -14,6 +14,19 @@ export interface CreateSnippetRequest {
   password?: string;
 }
 
+export interface UpdateSnippetRequest {
+  snippetId: string;
+  code: string;
+  language?: string;
+  title?: string;
+  password?: string;
+}
+
+export interface UpdateSnippetResponse {
+  success: boolean;
+  message: string;
+}
+
 export interface CreateSnippetResponse {
   success: boolean;
   shortUrl: string;
@@ -21,6 +34,12 @@ export interface CreateSnippetResponse {
   snippetId: string;
   expiresAt?: string;
   remainingLinks: number;
+}
+
+// Type for Firebase function errors
+interface FirebaseError extends Error {
+  code?: string;
+  details?: unknown;
 }
 
 // Type for handling various timestamp formats from Firestore
@@ -43,26 +62,9 @@ export interface GetSnippetResponse {
   };
 }
 
-export interface UpdateSnippetRequest {
-  snippetId: string;
-  code: string;
-  language?: string;
-  title?: string;
-  password?: string;
-}
-
-// Type for Firebase function errors
-interface FirebaseError extends Error {
-  code?: string;
-  details?: unknown;
-}
-
 // Type guard to check if error is a Firebase error
 function isFirebaseError(error: unknown): error is FirebaseError {
-  return (
-    error instanceof Error &&
-    typeof (error as FirebaseError).code !== "undefined"
-  );
+  return error instanceof Error && 'code' in error;
 }
 
 // Authentication API functions
