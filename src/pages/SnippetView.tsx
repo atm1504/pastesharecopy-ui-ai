@@ -232,11 +232,30 @@ const SnippetView: React.FC = () => {
 
   // Function to handle edit button click
   const handleEditClick = () => {
-    if (!snippet) return;
+    console.log("Edit button clicked", { snippet, user, shortUrl });
 
-    // Navigate to editor with the snippet data
-    navigate("/", {
-      state: {
+    if (!snippet) {
+      console.error("No snippet data available for editing");
+      toast({
+        title: "Error",
+        description: "Snippet data is not available for editing",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!user) {
+      console.error("User not authenticated");
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to edit this snippet",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      console.log("Navigating to editor with edit state", {
         editMode: true,
         snippetId: snippet.id,
         shortUrl: shortUrl,
@@ -245,8 +264,36 @@ const SnippetView: React.FC = () => {
         title: snippet.title,
         expiresAt: snippet.expiresAt,
         isConfidential: snippet.isConfidential,
-      },
-    });
+      });
+
+      // Navigate to editor with the snippet data
+      navigate("/", {
+        state: {
+          editMode: true,
+          snippetId: snippet.id,
+          shortUrl: shortUrl,
+          code: snippet.content,
+          language: snippet.language,
+          title: snippet.title,
+          expiresAt: snippet.expiresAt,
+          isConfidential: snippet.isConfidential,
+        },
+        replace: false,
+      });
+
+      // Add success feedback
+      toast({
+        title: "Opening Editor",
+        description: "Redirecting to editor with your snippet...",
+      });
+    } catch (error) {
+      console.error("Error navigating to editor:", error);
+      toast({
+        title: "Navigation Error",
+        description: "Failed to open editor. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   if (loading) {
@@ -351,29 +398,43 @@ const SnippetView: React.FC = () => {
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
               <CardTitle className="text-lg">Code</CardTitle>
               <div className="flex flex-wrap items-center gap-2">
-                {/* Add edit button for authenticated users */}
-                {user && (
+                {/* Debug info in development */}
+                {process.env.NODE_ENV === "development" && (
+                  <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                    User: {user ? "Authenticated" : "Anonymous"} | Snippet:{" "}
+                    {snippet?.id ? "Loaded" : "Missing"}
+                  </div>
+                )}
+
+                {/* Edit button with improved logic */}
+                {user ? (
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={handleEditClick}
                     className="flex-shrink-0"
+                    disabled={!snippet || !snippet.id}
                   >
                     <Edit className="mr-2 h-4 w-4" />
                     Edit
                   </Button>
-                )}
-                {/* Show disabled edit button for anonymous users */}
-                {!user && (
+                ) : (
                   <Button
                     size="sm"
                     variant="outline"
                     disabled
                     title="Sign in to edit this snippet"
-                    className="flex-shrink-0"
+                    className="flex-shrink-0 opacity-50"
+                    onClick={() => {
+                      toast({
+                        title: "Authentication Required",
+                        description: "Please sign in to edit snippets",
+                        variant: "destructive",
+                      });
+                    }}
                   >
                     <Edit className="mr-2 h-4 w-4" />
-                    Edit
+                    Edit (Sign in required)
                   </Button>
                 )}
                 <Button

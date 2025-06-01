@@ -11,6 +11,12 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
@@ -98,11 +104,20 @@ const NavBar: React.FC<NavBarProps> = ({ onViewLinksClick }) => {
                   <User className="h-5 w-5" />
                 )}
                 {profile.availableLinks > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-green-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
-                    {profile.availableLinks > 99
-                      ? "99+"
-                      : profile.availableLinks}
-                  </span>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <span className="absolute -top-1 -right-1 bg-green-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
+                          {profile.availableLinks > 99
+                            ? "99+"
+                            : profile.availableLinks}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{t("navigation.availableLinksTooltip")}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 )}
               </Button>
             </DropdownMenuTrigger>

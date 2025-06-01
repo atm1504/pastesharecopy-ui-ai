@@ -192,20 +192,36 @@ const Dashboard: React.FC<DashboardProps> = ({ view = "links" }) => {
                   {profile.subscription?.plan ? "∞" : profile.availableLinks}
                   {!profile.subscription?.plan && (
                     <span className="text-lg text-muted-foreground ml-2">
-                      / 10 today
+                      / {profile.dailyLimit || 10} today
                     </span>
                   )}
                 </div>
+
+                {/* Show gaming bonus if user has earned extra links */}
+                {!profile.subscription?.plan &&
+                  (profile.dailyLimit || 10) > 10 && (
+                    <div className="text-xs text-green-600 dark:text-green-400 mt-1">
+                      🎮 Gaming bonus: +{(profile.dailyLimit || 10) - 10} extra
+                      daily links!
+                    </div>
+                  )}
 
                 {/* Progress bar for free users */}
                 {!profile.subscription?.plan && (
                   <div className="mt-2">
                     <Progress
-                      value={(profile.availableLinks / 10) * 100}
+                      value={
+                        (((profile.dailyLimit || 10) - profile.availableLinks) /
+                          (profile.dailyLimit || 10)) *
+                        100
+                      }
                       className="h-2"
                     />
                     <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                      <span>Used: {10 - profile.availableLinks}</span>
+                      <span>
+                        Used:{" "}
+                        {(profile.dailyLimit || 10) - profile.availableLinks}
+                      </span>
                       <span>Remaining: {profile.availableLinks}</span>
                     </div>
                   </div>

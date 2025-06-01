@@ -901,7 +901,14 @@ const PasteCodeEditor: React.FC = () => {
       isConfidential: boolean;
     } | null;
 
+    console.log("CodeEditor: Location state changed", {
+      state,
+      pathname: location.pathname,
+    });
+
     if (state?.editMode) {
+      console.log("CodeEditor: Entering edit mode", state);
+
       setIsEditing(true);
       setSnippetId(state.snippetId);
       setCode(state.code);
@@ -909,7 +916,9 @@ const PasteCodeEditor: React.FC = () => {
 
       // Set the generated link if we have the shortUrl
       if (state.shortUrl) {
-        setGeneratedLink(`${window.location.origin}/${state.shortUrl}`);
+        const fullUrl = `${window.location.origin}/${state.shortUrl}`;
+        setGeneratedLink(fullUrl);
+        console.log("CodeEditor: Set generated link", fullUrl);
       }
 
       // Set other form values if they exist
@@ -929,12 +938,19 @@ const PasteCodeEditor: React.FC = () => {
         } else if (diffDays <= 7) {
           form.setValue("expiration", "7d");
         }
+
+        console.log("CodeEditor: Set expiration", { diffDays, expiresAt });
       }
 
       // Clear the location state to avoid re-applying on refresh
       window.history.replaceState({}, document.title);
+
+      toast({
+        title: "Edit Mode Activated",
+        description: "You can now edit this snippet",
+      });
     }
-  }, [location, form]);
+  }, [location, form, toast]);
 
   const handleLanguageChange = (value: string) => {
     setLanguage(value);
@@ -1310,7 +1326,7 @@ const PasteCodeEditor: React.FC = () => {
             </TabsList>
 
             <h1 className="text-xl font-bold text-center bg-gradient-to-r from-primary via-indigo-400 to-purple-500 bg-clip-text text-transparent drop-shadow-md">
-              Start Sharing Your Code
+              {isEditing ? "Edit Your Snippet" : "Start Sharing Your Code"}
             </h1>
 
             <Select value={language} onValueChange={handleLanguageChange}>
@@ -1336,6 +1352,12 @@ const PasteCodeEditor: React.FC = () => {
                 <div className="code-header flex items-center justify-between p-2 border-b">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-mono">{language}</span>
+                    {/* Show edit mode indicator */}
+                    {isEditing && (
+                      <span className="text-xs px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                        Edit Mode
+                      </span>
+                    )}
                     {/* Show validation status */}
                     {code.trim() && (
                       <span
