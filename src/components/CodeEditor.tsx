@@ -60,39 +60,57 @@ import {
   createSnippet,
   CreateSnippetRequest,
   updateSnippet,
+  UpdateSnippetRequest,
   getSnippet,
 } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { LanguageSelect } from "@/components/LanguageSelect";
-import { useLocation } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 
 // Import light theme for hljs
 import "highlight.js/styles/github.css";
 
-const formSchema = z
-  .object({
-    expiration: z.string().min(1),
-    isPasswordProtected: z.boolean().default(false),
-    password: z.string().optional(),
-  })
-  .refine(
-    (data) => {
-      // If password protection is enabled, password must be provided
-      if (
-        data.isPasswordProtected &&
-        (!data.password || data.password.trim() === "")
-      ) {
-        return false;
-      }
-      return true;
-    },
-    {
-      message: "Password is required when password protection is enabled",
-      path: ["password"],
-    }
-  );
+// Add type for API responses
+interface UpdateSnippetData {
+  snippetId: string;
+  code: string;
+  language: string;
+  password?: string;
+}
+
+interface UpdateSnippetResponse {
+  success: boolean;
+  message?: string;
+}
+
+interface CreateSnippetResponse {
+  success: boolean;
+  shortUrl: string;
+  snippetId: string;
+  remainingLinks: number;
+}
+
+// Update the form schema to include edit mode fields
+const formSchema = z.object({
+  expiration: z.string(),
+  isPasswordProtected: z.boolean(),
+  password: z.string().optional(),
+  editPassword: z.string().optional(),
+});
 
 type FormValues = z.infer<typeof formSchema>;
+
+// Define the editor modes
+type EditorMode = 'new' | 'edit';
+
+interface ButtonProps {
+  variant: "default" | "ghost";
+  size: "sm";
+  onClick: () => void;
+  className: string;
+  disabled?: boolean;
+  title?: string;
+}
 
 // Sample code for different languages
 const languageSamples = {
@@ -840,15 +858,28 @@ const renderPreview = (
   }
 };
 
+interface EditorState {
+  editMode: boolean;
+  snippetId: string;
+  shortUrl: string;
+  code: string;
+  language: string;
+  title: string;
+  expiresAt: string | null;
+  isConfidential: boolean;
+  isPasswordProtected: boolean;
+  password?: string;
+}
+
 const PasteCodeEditor: React.FC = () => {
   const [code, setCode] = useState<string>("");
   const [language, setLanguage] = useState<string>("javascript");
   const [isGeneratingLink, setIsGeneratingLink] = useState<boolean>(false);
   const [generatedLink, setGeneratedLink] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>("editor");
-  const [isEditing, setIsEditing] = useState<boolean>(false);
   const [snippetId, setSnippetId] = useState<string | null>(null);
   const [editPassword, setEditPassword] = useState<string | null>(null);
+  const [isPasswordProtected, setIsPasswordProtected] = useState(false);
   const [validation, setValidation] = useState<{
     isValid: boolean;
     error?: string;
@@ -856,12 +887,15 @@ const PasteCodeEditor: React.FC = () => {
     isValid: true,
   });
   const [remainingLinks, setRemainingLinks] = useState<number | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const isDarkMode = useIsDarkMode();
   const { toast } = useToast();
   const { t } = useTranslation();
   const { profile, user } = useAuth();
   const location = useLocation();
+  const params = useParams<{ shortUrl?: string }>();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -906,20 +940,86 @@ const PasteCodeEditor: React.FC = () => {
     }
   }, [profile]);
 
+  // Add loadSnippet as a reusable function
+  const loadSnippet = async (shortUrl: string) => {
+    if (!shortUrl) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await getSnippet(shortUrl);
+      if (response.success && response.snippet) {
+        setCode(response.snippet.content);
+        setLanguage(response.snippet.language);
+        setSnippetId(response.snippet.id);
+        
+        // Set the generated link
+        const fullUrl = `${window.location.origin}/${shortUrl}`;
+        setGeneratedLink(fullUrl);
+
+        // Update form values if needed
+        if (response.snippet.expiresAt) {
+          const now = new Date();
+          let expiresAt: Date;
+
+          // Handle Firestore timestamp format
+          if (typeof response.snippet.expiresAt === 'object' && 'seconds' in response.snippet.expiresAt) {
+            expiresAt = new Date(response.snippet.expiresAt.seconds * 1000);
+          }
+          // Handle ISO string format
+          else if (typeof response.snippet.expiresAt === 'string') {
+            expiresAt = new Date(response.snippet.expiresAt);
+          }
+          // Handle timestamp number
+          else if (typeof response.snippet.expiresAt === 'number') {
+            expiresAt = new Date(response.snippet.expiresAt);
+          }
+          // Handle Date object
+          else if (response.snippet.expiresAt instanceof Date) {
+            expiresAt = response.snippet.expiresAt;
+          } else {
+            // Skip expiration setting if format is unknown
+            return;
+          }
+
+          const diffTime = expiresAt.getTime() - now.getTime();
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+          if (diffDays <= 1) form.setValue("expiration", "1d");
+          else if (diffDays <= 2) form.setValue("expiration", "2d");
+          else if (diffDays <= 3) form.setValue("expiration", "3d");
+          else if (diffDays <= 7) form.setValue("expiration", "7d");
+        }
+
+        toast({
+          title: "Snippet Loaded",
+          description: "The code snippet has been loaded successfully.",
+        });
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to load snippet";
+      setError(errorMessage);
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Use loadSnippet in useEffect
+  useEffect(() => {
+    if (params.shortUrl) {
+      loadSnippet(params.shortUrl);
+    }
+  }, [params.shortUrl]);
+
   // Handle edit mode from snippet view
   useEffect(() => {
-    const state = location.state as {
-      editMode: boolean;
-      snippetId: string;
-      shortUrl: string;
-      code: string;
-      language: string;
-      title: string;
-      expiresAt: any;
-      isConfidential: boolean;
-      isPasswordProtected?: boolean;
-      password?: string;
-    } | null;
+    const state = location.state as EditorState | null;
 
     console.log("CodeEditor: Location state changed", {
       state,
@@ -929,7 +1029,6 @@ const PasteCodeEditor: React.FC = () => {
     if (state?.editMode) {
       console.log("CodeEditor: Entering edit mode", state);
 
-      setIsEditing(true);
       setSnippetId(state.snippetId);
       setCode(state.code);
       setLanguage(state.language);
@@ -986,11 +1085,11 @@ const PasteCodeEditor: React.FC = () => {
     setCode(e.target.value);
   };
 
-  const handleGenerateLink = async (values: FormValues) => {
+  const handleSubmit = async (values: FormValues) => {
     if (!code.trim()) {
       toast({
         title: "Error",
-        description: "Please add some code before generating a link.",
+        description: "Please add some code before proceeding.",
         variant: "destructive",
       });
       return;
@@ -999,48 +1098,65 @@ const PasteCodeEditor: React.FC = () => {
     setIsGeneratingLink(true);
 
     try {
-      const snippetData: CreateSnippetRequest = {
-        code: code,
-        language: language,
-        title: `${language} snippet`, // You could make this configurable
-        expiration: values.expiration,
-        isConfidential: false, // For now, no confidential snippets in free version
-        isPasswordProtected: values.isPasswordProtected,
-        password: values.isPasswordProtected ? values.password : undefined,
-      };
+      if (snippetId) {
+        // If we have a snippetId, update the existing snippet
+        const updateData: UpdateSnippetRequest = {
+          snippetId,
+          code,
+          language,
+          password: values.editPassword
+        };
 
-      const result = await createSnippet(snippetData);
+        const result = await updateSnippet(updateData);
+        if (result.success) {
+          toast({
+            title: "Success",
+            description: "Snippet updated successfully",
+          });
+        }
+      } else {
+        // If we don't have a snippetId yet, create a new snippet
+        const snippetData: CreateSnippetRequest = {
+          code: code,
+          language: language,
+          title: `${language} snippet`,
+          expiration: values.expiration,
+          isConfidential: false,
+          isPasswordProtected: values.isPasswordProtected,
+          password: values.isPasswordProtected ? values.password : undefined,
+        };
 
-      // Get the base URL from the current window location
-      const baseUrl = window.location.origin;
-      const fullUrl = `${baseUrl}/${result.shortUrl}`;
-      setGeneratedLink(fullUrl);
-      setRemainingLinks(result.remainingLinks);
+        const result = await createSnippet(snippetData);
+        const baseUrl = window.location.origin;
+        const fullUrl = `${baseUrl}/${result.shortUrl}`;
+        
+        // Store the snippetId to enable edit mode
+        setSnippetId(result.snippetId);
+        setGeneratedLink(fullUrl);
+        setRemainingLinks(result.remainingLinks);
 
-      toast({
-        title: "Link generated successfully!",
-        description: `Your code snippet is now shareable. ${
-          result.remainingLinks >= 0
-            ? `You have ${result.remainingLinks} snippets remaining.`
-            : "You have unlimited snippets."
-        }`,
-      });
-    } catch (error) {
-      console.error("Error generating link:", error);
-
-      // Handle specific error cases
-      if (error.message.includes("snippet limit")) {
+        toast({
+          title: "Success",
+          description: `Your code snippet has been created. You can now edit it in Edit Mode. ${
+            result.remainingLinks >= 0
+              ? `You have ${result.remainingLinks} snippets remaining.`
+              : "You have unlimited snippets."
+          }`,
+        });
+      }
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
+      
+      if (errorMessage.includes("snippet limit")) {
         toast({
           title: "Snippet Limit Reached",
-          description:
-            "You've reached your snippet limit. Upgrade to premium for unlimited snippets!",
+          description: "You've reached your snippet limit. Upgrade to premium for unlimited snippets!",
           variant: "destructive",
           action: (
             <Button
               variant="outline"
               size="sm"
               onClick={() => {
-                // Redirect to premium page
                 window.location.href = "/premium";
               }}
             >
@@ -1048,17 +1164,10 @@ const PasteCodeEditor: React.FC = () => {
             </Button>
           ),
         });
-      } else if (error.message.includes("Confidential snippets")) {
-        toast({
-          title: "Premium Feature",
-          description:
-            "Confidential snippets are only available for premium users.",
-          variant: "destructive",
-        });
       } else {
         toast({
           title: "Error generating link",
-          description: error.message || "Please try again in a moment.",
+          description: errorMessage,
           variant: "destructive",
         });
       }
@@ -1283,494 +1392,425 @@ const PasteCodeEditor: React.FC = () => {
     }
   };
 
-  // Function to handle snippet updates
-  const handleUpdateSnippet = async () => {
-    if (!snippetId || !code.trim()) {
-      return;
-    }
-
-    try {
-      const updateData: any = {
-        snippetId,
-        code,
-        language,
-      };
-
-      // Include password if this is a password-protected snippet
-      if (editPassword) {
-        updateData.password = editPassword;
-      }
-
-      const result = await updateSnippet(updateData);
-
-      if (result.success) {
-        toast({
-          title: "Success",
-          description: "Snippet updated successfully",
-        });
-      }
-    } catch (err) {
-      toast({
-        title: "Error updating snippet",
-        description: err instanceof Error ? err.message : "Please try again",
-        variant: "destructive",
-      });
-    }
+  // Handle button click for form submission
+  const handleButtonClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    form.handleSubmit(handleSubmit)();
   };
-
-  // Function to load a snippet for editing
-  const loadSnippetForEdit = async (shortUrl: string) => {
-    try {
-      const result = await getSnippet(shortUrl);
-      if (result.success) {
-        setCode(result.snippet.content);
-        setLanguage(result.snippet.language);
-        setSnippetId(result.snippet.id);
-        setIsEditing(true);
-      }
-    } catch (err) {
-      toast({
-        title: "Error loading snippet",
-        description: err instanceof Error ? err.message : "Please try again",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // Check if current user can edit
-  const canEdit = user && snippetId;
 
   return (
     <div className="space-y-4">
-      <div className="w-full mx-auto">
-        <Tabs
-          defaultValue="editor"
-          className="w-full"
-          value={activeTab}
-          onValueChange={setActiveTab}
-        >
-          <div className="flex items-center justify-between mb-1">
-            <TabsList className="h-10">
-              <TabsTrigger value="editor" className="text-sm">
-                Editor
-              </TabsTrigger>
-              <TabsTrigger value="preview" className="text-sm">
-                Preview
-              </TabsTrigger>
-            </TabsList>
-
-            <h1 className="text-xl font-bold text-center bg-gradient-to-r from-primary via-indigo-400 to-purple-500 bg-clip-text text-transparent drop-shadow-md">
-              {isEditing ? "Edit Your Snippet" : "Start Sharing Your Code"}
-            </h1>
-
-            <Select value={language} onValueChange={handleLanguageChange}>
-              <SelectTrigger className="w-40 h-10">
-                <SelectValue placeholder="Language" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectLabel>Languages</SelectLabel>
-                  {languageOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
+      {loading ? (
+        <div className="flex items-center justify-center h-[70vh]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading snippet...</p>
           </div>
+        </div>
+      ) : error ? (
+        <div className="flex items-center justify-center h-[70vh]">
+          <div className="text-center max-w-md mx-auto px-4">
+            <h1 className="text-2xl font-bold mb-4">Error Loading Snippet</h1>
+            <p className="text-muted-foreground mb-6">{error}</p>
+            <Button onClick={() => window.location.href = "/"} className="w-full">
+              Create New Snippet
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="w-full mx-auto">
+          <Tabs
+            defaultValue="editor"
+            className="w-full"
+            value={activeTab}
+            onValueChange={setActiveTab}
+          >
+            <div className="flex items-center justify-between mb-1">
+              <TabsList className="h-10">
+                <TabsTrigger value="editor" className="text-sm">
+                  Editor
+                </TabsTrigger>
+                <TabsTrigger value="preview" className="text-sm">
+                  Preview
+                </TabsTrigger>
+              </TabsList>
 
-          <div className="bg-card border rounded-lg shadow-sm overflow-hidden mb-2">
-            <TabsContent value="editor" className="mt-0">
-              <div className="h-[71vh] flex flex-col">
-                <div className="code-header flex items-center justify-between p-2 border-b">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-mono">{language}</span>
-                    {/* Show edit mode indicator */}
-                    {isEditing && (
-                      <span className="text-xs px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">
-                        Edit Mode
-                      </span>
-                    )}
-                    {/* Show validation status */}
-                    {code.trim() && (
-                      <span
-                        className={`text-xs px-2 py-0.5 rounded ${
-                          validation.isValid
-                            ? "bg-green-500/20 text-green-400"
-                            : "bg-red-500/20 text-red-400"
-                        }`}
-                      >
-                        {validation.isValid ? "Valid" : "Invalid"}
-                      </span>
-                    )}
-                    {!validation.isValid && (
-                      <span className="text-xs text-red-400">
-                        {validation.error}
-                      </span>
-                    )}
-                    {isEditing && (
-                      <Button
-                        onClick={handleUpdateSnippet}
-                        disabled={!canEdit}
-                        variant="outline"
-                        className="gap-2 ml-2"
-                        size="sm"
-                      >
-                        <Save className="h-4 w-4" />
-                        Save Changes
-                      </Button>
-                    )}
-                    {!user && isEditing && (
-                      <div className="text-sm text-muted-foreground ml-2">
-                        Sign in to edit this snippet
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex gap-1">
-                    {aiServices.map((service) => (
-                      <TooltipProvider key={service.id}>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-7 px-2"
-                              onClick={() => handleAIPaste(service)}
-                            >
-                              <span className="text-xs font-semibold">
-                                {service.name}
-                              </span>
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Copy & open in {service.name}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+              <h1 className="text-xl font-bold text-center bg-gradient-to-r from-primary via-indigo-400 to-purple-500 bg-clip-text text-transparent drop-shadow-md">
+                Code Snippet Editor
+              </h1>
+
+              <Select value={language} onValueChange={handleLanguageChange}>
+                <SelectTrigger className="w-40 h-10">
+                  <SelectValue placeholder="Language" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectLabel>Languages</SelectLabel>
+                    {languageOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
                     ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="bg-card border rounded-lg shadow-sm overflow-hidden mb-2">
+              <TabsContent value="editor" className="mt-0">
+                <div className="h-[71vh] flex flex-col">
+                  <div className="code-header flex items-center justify-between p-2 border-b">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-mono">{language}</span>
+                      {/* Show validation status */}
+                      {code.trim() && (
+                        <span
+                          className={`text-xs px-2 py-0.5 rounded ${
+                            validation.isValid
+                              ? "bg-green-500/20 text-green-400"
+                              : "bg-red-500/20 text-red-400"
+                          }`}
+                        >
+                          {validation.isValid ? "Valid" : "Invalid"}
+                        </span>
+                      )}
+                      {!validation.isValid && (
+                        <span className="text-xs text-red-400">
+                          {validation.error}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex gap-1">
+                      {aiServices.map((service) => (
+                        <TooltipProvider key={service.id}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 px-2"
+                                onClick={() => handleAIPaste(service)}
+                              >
+                                <span className="text-xs font-semibold">
+                                  {service.name}
+                                </span>
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Copy & open in {service.name}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      ))}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 px-2"
+                        onClick={() =>
+                          copyToClipboard(code, "Code copied to clipboard!")
+                        }
+                      >
+                        <Copy size={14} className="mr-1" />
+                        <span className="text-xs">Copy</span>
+                      </Button>
+                      <Button size="sm" variant="ghost" className="h-7 px-2">
+                        <Download size={14} className="mr-1" />
+                        <span className="text-xs">Download</span>
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-1 relative">
+                    <div
+                      className={`py-4 text-muted-foreground text-right select-none font-mono text-xs w-[3.5rem] overflow-y-hidden flex flex-col ${
+                        isDarkMode ? "bg-[#181824]" : "bg-gray-100"
+                      }`}
+                    >
+                      {code.split("\n").map((_, i) => (
+                        <div
+                          key={i}
+                          className="px-2 h-[1.5rem] flex items-center justify-end"
+                          style={{ lineHeight: "1.5rem" }}
+                        >
+                          {i + 1}
+                        </div>
+                      ))}
+                    </div>
+
+                    <div
+                      className={`flex-1 relative ${
+                        !isDarkMode ? "border-l border-gray-200" : ""
+                      }`}
+                    >
+                      <CodeEditor
+                        value={code}
+                        language={language}
+                        placeholder="Paste your code or start typing..."
+                        onChange={handleCodeChange}
+                        padding={15}
+                        style={{
+                          fontSize: "1rem",
+                          fontFamily: "'JetBrains Mono', monospace",
+                          backgroundColor: isDarkMode ? "#151520" : "#fcfcfc",
+                          color: isDarkMode ? "#ffffff" : "#333333",
+                          height: "100%",
+                          borderRadius: "0",
+                          lineHeight: "1.5rem",
+                        }}
+                        className="w-full outline-none resize-none h-full"
+                        data-color-mode={isDarkMode ? "dark" : "light"}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="preview" className="mt-0">
+                <div className="h-[71vh] flex flex-col">
+                  <div className="code-header flex items-center justify-between p-2 border-b">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-mono">Preview</span>
+                      <span className="text-xs text-muted-foreground">
+                        {language === "markdown"
+                          ? "Rendered Markdown"
+                          : language === "html"
+                          ? "Rendered HTML"
+                          : language === "css"
+                          ? "Styled Elements"
+                          : language === "json"
+                          ? "Formatted JSON"
+                          : "Syntax Highlighted"}
+                      </span>
+                    </div>
                     <Button
                       size="sm"
                       variant="ghost"
                       className="h-7 px-2"
-                      onClick={() =>
-                        copyToClipboard(code, "Code copied to clipboard!")
-                      }
+                      onClick={() => setActiveTab("editor")}
                     >
-                      <Copy size={14} className="mr-1" />
-                      <span className="text-xs">Copy</span>
-                    </Button>
-                    <Button size="sm" variant="ghost" className="h-7 px-2">
-                      <Download size={14} className="mr-1" />
-                      <span className="text-xs">Download</span>
+                      <span className="text-xs">Edit</span>
                     </Button>
                   </div>
-                </div>
-
-                <div className="flex flex-1 relative">
                   <div
-                    className={`py-4 text-muted-foreground text-right select-none font-mono text-xs w-[3.5rem] overflow-y-hidden flex flex-col ${
-                      isDarkMode ? "bg-[#181824]" : "bg-gray-100"
-                    }`}
+                    style={{
+                      backgroundColor: isDarkMode ? "#151520" : "#fcfcfc",
+                      boxShadow: isDarkMode
+                        ? "none"
+                        : "inset 0 1px 2px rgba(0,0,0,0.05)",
+                      flex: 1,
+                    }}
+                    className="p-4 overflow-auto"
                   >
-                    {code.split("\n").map((_, i) => (
-                      <div
-                        key={i}
-                        className="px-2 h-[1.5rem] flex items-center justify-end"
-                        style={{ lineHeight: "1.5rem" }}
-                      >
-                        {i + 1}
-                      </div>
-                    ))}
-                  </div>
-
-                  <div
-                    className={`flex-1 relative ${
-                      !isDarkMode ? "border-l border-gray-200" : ""
-                    }`}
-                  >
-                    <CodeEditor
-                      value={code}
-                      language={language}
-                      placeholder="Paste your code or start typing..."
-                      onChange={handleCodeChange}
-                      padding={15}
-                      style={{
-                        fontSize: "1rem",
-                        fontFamily: "'JetBrains Mono', monospace",
-                        backgroundColor: isDarkMode ? "#151520" : "#fcfcfc",
-                        color: isDarkMode ? "#ffffff" : "#333333",
-                        height: "100%",
-                        borderRadius: "0",
-                        lineHeight: "1.5rem",
-                      }}
-                      className="w-full outline-none resize-none h-full"
-                      data-color-mode={isDarkMode ? "dark" : "light"}
-                    />
+                    {/* Language-specific preview */}
+                    {renderPreview(code, language, validation, isDarkMode)}
                   </div>
                 </div>
-              </div>
-            </TabsContent>
+              </TabsContent>
+            </div>
 
-            <TabsContent value="preview" className="mt-0">
-              <div className="h-[71vh] flex flex-col">
-                <div className="code-header flex items-center justify-between p-2 border-b">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-mono">Preview</span>
-                    <span className="text-xs text-muted-foreground">
-                      {language === "markdown"
-                        ? "Rendered Markdown"
-                        : language === "html"
-                        ? "Rendered HTML"
-                        : language === "css"
-                        ? "Styled Elements"
-                        : language === "json"
-                        ? "Formatted JSON"
-                        : "Syntax Highlighted"}
-                    </span>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-7 px-2"
-                    onClick={() => setActiveTab("editor")}
-                  >
-                    <span className="text-xs">Edit</span>
-                  </Button>
-                </div>
-                <div
-                  style={{
-                    backgroundColor: isDarkMode ? "#151520" : "#fcfcfc",
-                    boxShadow: isDarkMode
-                      ? "none"
-                      : "inset 0 1px 2px rgba(0,0,0,0.05)",
-                    flex: 1,
-                  }}
-                  className="p-4 overflow-auto"
-                >
-                  {/* Language-specific preview */}
-                  {renderPreview(code, language, validation, isDarkMode)}
-                </div>
-              </div>
-            </TabsContent>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-3">
-            <div className="bg-card rounded-lg border shadow-sm p-4">
-              <div className="mb-3 pb-3 border-b">
-                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-                  <h3 className="text-sm font-semibold">
-                    {t("editor.shareOptions")}
-                  </h3>
-                  {generatedLink && (
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 min-w-0">
-                      <a
-                        href={generatedLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs font-mono bg-secondary/50 px-2 py-1.5 rounded max-w-full overflow-x-auto whitespace-nowrap hover:bg-secondary/70 transition-colors break-all sm:max-w-[200px] lg:max-w-[280px]"
-                        title={generatedLink}
-                      >
-                        {generatedLink}
-                      </a>
-                      <div className="flex items-center gap-1 flex-shrink-0">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-7 w-7 p-0"
-                          onClick={() =>
-                            copyToClipboard(generatedLink, t("actions.copy"))
-                          }
-                          title="Copy link"
+            <div className="grid md:grid-cols-2 gap-3">
+              <div className="bg-card rounded-lg border shadow-sm p-4">
+                <div className="mb-3 pb-3 border-b">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                    <h3 className="text-sm font-semibold">
+                      {t("editor.shareOptions")}
+                    </h3>
+                    {generatedLink && (
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 min-w-0">
+                        <a
+                          href={generatedLink}
+                          className="text-xs font-mono bg-secondary/50 px-2 py-1.5 rounded max-w-full overflow-x-auto whitespace-nowrap hover:bg-secondary/70 transition-colors break-all sm:max-w-[200px] lg:max-w-[280px]"
+                          title={generatedLink}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            window.history.pushState({}, '', generatedLink);
+                            loadSnippet(generatedLink.split('/').pop() || '');
+                          }}
                         >
-                          <Copy size={13} />
-                        </Button>
-                        {!user && (
+                          {generatedLink}
+                        </a>
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 w-7 p-0"
+                            onClick={() =>
+                              copyToClipboard(generatedLink, t("actions.copy"))
+                            }
+                            title="Copy link"
+                          >
+                            <Copy size={13} />
+                          </Button>
                           <Button
                             size="sm"
                             variant="ghost"
                             className="h-7 px-2"
-                            disabled
-                            title="Sign in to edit this snippet"
+                            onClick={() => window.open(generatedLink, '_blank')}
+                            title="Open in new tab"
                           >
-                            <Save size={13} className="mr-1" />
-                            <span className="text-xs">Edit</span>
+                            <ExternalLink size={13} className="mr-1" />
+                            <span className="text-xs">Open</span>
                           </Button>
-                        )}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
-              </div>
 
-              <Form {...form}>
-                <form
-                  onSubmit={form.handleSubmit(handleGenerateLink)}
-                  className="space-y-4"
-                >
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <div className="flex items-center gap-2 bg-secondary/20 hover:bg-secondary/30 rounded-md p-2 transition-colors flex-1 min-w-0">
-                      <FormField
-                        control={form.control}
-                        name="expiration"
-                        render={({ field }) => (
-                          <FormItem className="w-full">
-                            <div className="flex items-center w-full">
-                              <Clock
-                                size={15}
-                                className="text-primary mr-2 flex-shrink-0"
-                              />
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+                    <div className="flex flex-wrap gap-4">
+                      <div className="flex items-center gap-2 bg-secondary/20 hover:bg-secondary/30 rounded-md p-2 transition-colors flex-1 min-w-0">
+                        <Clock size={15} className="text-primary flex-shrink-0" />
+                        <FormField
+                          control={form.control}
+                          name="expiration"
+                          render={({ field }) => (
+                            <FormItem className="flex-1">
                               <Select
+                                value={field.value}
                                 onValueChange={field.onChange}
-                                defaultValue={field.value}
                               >
-                                <SelectTrigger className="h-8 text-sm border-0 bg-transparent hover:bg-secondary/10 w-full focus:ring-0 focus:ring-offset-0">
-                                  <SelectValue
-                                    placeholder={t("editor.expiration.1d")}
-                                  />
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select expiration" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="1d">
-                                    {t("editor.expiration.1d")}
-                                  </SelectItem>
-                                  <SelectItem value="2d">
-                                    {t("editor.expiration.2d")}
-                                  </SelectItem>
-                                  <SelectItem value="3d">
-                                    {t("editor.expiration.3d")}
-                                  </SelectItem>
-                                  <SelectItem value="7d">
-                                    {t("editor.expiration.7d")}
-                                  </SelectItem>
-                                  <SelectItem value="30d" disabled>
-                                    30 days (Premium)
-                                  </SelectItem>
-                                  <SelectItem value="never" disabled>
-                                    Never (Premium)
-                                  </SelectItem>
+                                  <SelectItem value="1d">1 day</SelectItem>
+                                  <SelectItem value="2d">2 days</SelectItem>
+                                  <SelectItem value="3d">3 days</SelectItem>
+                                  <SelectItem value="7d">7 days</SelectItem>
                                 </SelectContent>
                               </Select>
-                            </div>
-                          </FormItem>
-                        )}
-                      />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
+                      <div className="flex items-center bg-secondary/20 hover:bg-secondary/30 rounded-md p-2 transition-colors">
+                        <FormField
+                          control={form.control}
+                          name="isPasswordProtected"
+                          render={({ field }) => (
+                            <FormItem className="flex items-center gap-2 mt-0">
+                              <div className="flex items-center gap-2">
+                                <Lock
+                                  size={15}
+                                  className="text-primary flex-shrink-0"
+                                />
+                                <FormLabel className="text-sm cursor-pointer m-0 whitespace-nowrap">
+                                  Password Protected
+                                </FormLabel>
+                              </div>
+                              <FormControl>
+                                <Checkbox
+                                  checked={field.value}
+                                  onCheckedChange={(checked) => {
+                                    field.onChange(checked);
+                                    setIsPasswordProtected(!!checked);
+                                  }}
+                                  className="h-4 w-4 text-primary"
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                      </div>
                     </div>
 
-                    <div className="flex items-center bg-secondary/20 hover:bg-secondary/30 rounded-md p-2 transition-colors">
-                      <FormField
-                        control={form.control}
-                        name="isPasswordProtected"
-                        render={({ field }) => (
-                          <FormItem className="flex items-center gap-2 mt-0">
-                            <div className="flex items-center gap-2">
-                              <Lock
-                                size={15}
-                                className="text-primary flex-shrink-0"
-                              />
-                              <FormLabel className="text-sm cursor-pointer m-0 whitespace-nowrap">
-                                {t("editor.password", "Password")}
+                    {form.watch("isPasswordProtected") && (
+                      <div className="space-y-2">
+                        <FormField
+                          control={form.control}
+                          name="password"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-sm">
+                                Enter Password
                               </FormLabel>
-                            </div>
-                            <FormControl>
-                              <Checkbox
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                                className="h-4 w-4 text-primary"
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
+                              <FormControl>
+                                <input
+                                  type="password"
+                                  placeholder="Enter a password to protect this snippet"
+                                  className="w-full px-3 py-2 text-sm border border-input bg-background rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                                  {...field}
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    )}
+
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={handleButtonClick}
+                        type="button"
+                        className="gap-2 bg-primary hover:bg-primary/90 text-sm h-10"
+                        disabled={isGeneratingLink || !code.trim()}
+                      >
+                        <LinkIcon size={15} />
+                        Generate Link
+                      </Button>
+
+                      {snippetId && user && (
+                        <Button
+                          onClick={handleButtonClick}
+                          type="button"
+                          className="gap-2 bg-green-600 hover:bg-green-700 text-sm h-10"
+                          disabled={isGeneratingLink || !code.trim()}
+                        >
+                          <Save size={15} />
+                          Save Changes
+                        </Button>
+                      )}
                     </div>
+                  </form>
+                </Form>
+              </div>
+
+              <div className="bg-card rounded-lg border shadow-sm p-4">
+                <h3 className="text-sm font-semibold mb-2 pb-2 border-b">
+                  {t("editor.stats")}
+                </h3>
+                <div className="grid grid-cols-2 gap-x-8 gap-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground flex items-center">
+                      <Eye size={15} className="mr-1.5" /> {t("editor.views")}
+                    </span>
+                    <span className="text-sm font-medium">
+                      {pasteStats.views}
+                    </span>
                   </div>
-
-                  {/* Password input field - shows when password protection is enabled */}
-                  {form.watch("isPasswordProtected") && (
-                    <div className="space-y-2">
-                      <FormField
-                        control={form.control}
-                        name="password"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-sm">
-                              Enter Password
-                            </FormLabel>
-                            <FormControl>
-                              <input
-                                type="password"
-                                placeholder="Enter a password to protect this snippet"
-                                className="w-full px-3 py-2 text-sm border border-input bg-background rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-                                {...field}
-                              />
-                            </FormControl>
-                            {form.formState.errors.password && (
-                              <p className="text-sm text-destructive">
-                                {form.formState.errors.password.message}
-                              </p>
-                            )}
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  )}
-
-                  <Button
-                    type="submit"
-                    className="gap-2 bg-primary hover:bg-primary/90 text-sm h-10 w-full sm:w-auto"
-                    size="sm"
-                    disabled={isGeneratingLink || !code.trim()}
-                  >
-                    <LinkIcon size={15} />
-                    {isGeneratingLink
-                      ? t("actions.generating", "Generating...")
-                      : t("actions.generateLink", "Generate link")}
-                  </Button>
-                </form>
-              </Form>
-            </div>
-
-            <div className="bg-card rounded-lg border shadow-sm p-4">
-              <h3 className="text-sm font-semibold mb-2 pb-2 border-b">
-                {t("editor.stats")}
-              </h3>
-              <div className="grid grid-cols-2 gap-x-8 gap-y-3">
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground flex items-center">
-                    <Eye size={15} className="mr-1.5" /> {t("editor.views")}
-                  </span>
-                  <span className="text-sm font-medium">
-                    {pasteStats.views}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground flex items-center">
-                    <FileText size={15} className="mr-1.5" />{" "}
-                    {t("general.language")}
-                  </span>
-                  <span className="text-sm font-medium">
-                    {languageOptions.find((l) => l.value === language)?.label}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground flex items-center">
-                    <Clock size={15} className="mr-1.5" /> {t("editor.justNow")}
-                  </span>
-                  <span className="text-sm font-medium">
-                    {t("editor.justNow")}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground flex items-center">
-                    <Share2 size={15} className="mr-1.5" />{" "}
-                    {t("editor.shares", "Shares")}
-                  </span>
-                  <span className="text-sm font-medium">4.7M+</span>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground flex items-center">
+                      <FileText size={15} className="mr-1.5" />{" "}
+                      {t("general.language")}
+                    </span>
+                    <span className="text-sm font-medium">
+                      {languageOptions.find((l) => l.value === language)?.label}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground flex items-center">
+                      <Clock size={15} className="mr-1.5" /> {t("editor.justNow")}
+                    </span>
+                    <span className="text-sm font-medium">
+                      {t("editor.justNow")}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground flex items-center">
+                      <Share2 size={15} className="mr-1.5" />{" "}
+                      {t("editor.shares", "Shares")}
+                    </span>
+                    <span className="text-sm font-medium">4.7M+</span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </Tabs>
-      </div>
+          </Tabs>
+        </div>
+      )}
     </div>
   );
 };

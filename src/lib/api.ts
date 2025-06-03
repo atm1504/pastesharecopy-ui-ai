@@ -14,13 +14,32 @@ export interface CreateSnippetRequest {
   password?: string;
 }
 
+export interface UpdateSnippetRequest {
+  snippetId: string;
+  code: string;
+  language?: string;
+  title?: string;
+  password?: string;
+}
+
+export interface UpdateSnippetResponse {
+  success: boolean;
+  message: string;
+}
+
 export interface CreateSnippetResponse {
   success: boolean;
   shortUrl: string;
   fullUrl: string;
   snippetId: string;
-  expiresAt?: string;
+  expiresAt: string | null;
   remainingLinks: number;
+}
+
+// Type for Firebase function errors
+interface FirebaseError extends Error {
+  code?: string;
+  details?: unknown;
 }
 
 // Type for handling various timestamp formats from Firestore
@@ -43,26 +62,9 @@ export interface GetSnippetResponse {
   };
 }
 
-export interface UpdateSnippetRequest {
-  snippetId: string;
-  code: string;
-  language?: string;
-  title?: string;
-  password?: string;
-}
-
-// Type for Firebase function errors
-interface FirebaseError extends Error {
-  code?: string;
-  details?: unknown;
-}
-
 // Type guard to check if error is a Firebase error
 function isFirebaseError(error: unknown): error is FirebaseError {
-  return (
-    error instanceof Error &&
-    typeof (error as FirebaseError).code !== "undefined"
-  );
+  return error instanceof Error && 'code' in error;
 }
 
 // Authentication API functions
@@ -196,6 +198,13 @@ export const createSnippet = async (
   }
 };
 
+// Fix the getSnippet request data type
+interface GetSnippetRequest {
+  shortUrl: string;
+  deviceId: string;
+  password?: string;
+}
+
 export const getSnippet = async (
   shortUrl: string,
   password?: string
@@ -204,14 +213,11 @@ export const getSnippet = async (
     const deviceId = getDeviceId();
     const getSnippetFn = httpsCallable(functions, "get_snippet");
 
-    const requestData: any = {
+    const requestData: GetSnippetRequest = {
       shortUrl,
       deviceId,
+      ...(password && { password })
     };
-
-    if (password) {
-      requestData.password = password;
-    }
 
     const result = await getSnippetFn(requestData);
     return result.data as GetSnippetResponse;
@@ -353,7 +359,8 @@ export const getDailyUsage = async (): Promise<DailyUsageResponse> => {
   }
 };
 
-export const updateSnippet = async (data: UpdateSnippetRequest) => {
+// Fix the updateSnippet return type
+export const updateSnippet = async (data: UpdateSnippetRequest): Promise<UpdateSnippetResponse> => {
   try {
     const deviceId = getDeviceId();
     const updateSnippetFn = httpsCallable(functions, "update_snippet");
@@ -364,7 +371,7 @@ export const updateSnippet = async (data: UpdateSnippetRequest) => {
     };
 
     const result = await updateSnippetFn(requestData);
-    return result.data;
+    return result.data as UpdateSnippetResponse;
   } catch (error: unknown) {
     console.error("Error updating snippet:", error);
 
