@@ -96,8 +96,8 @@ const App = () => {
                     }
                   />
 
-                  {/* Snippet view route - handles short URLs (place before fallback) */}
-                  <Route path="/:shortUrl" element={<SnippetView />} />
+                  {/* Load snippets in the main editor */}
+                  <Route path="/:shortUrl" element={<Index />} />
 
                   {/* Fallback route */}
                   <Route path="*" element={<NotFound />} />
