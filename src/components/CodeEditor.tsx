@@ -1447,6 +1447,8 @@ const PasteCodeEditor: React.FC = () => {
                         height: "100%",
                         borderRadius: "0",
                         lineHeight: "1.5rem",
+                        width: "100%",
+                        minWidth: "100%",
                       }}
                       className="w-full outline-none resize-none h-full"
                       data-color-mode={isDarkMode ? "dark" : "light"}
@@ -1489,6 +1491,8 @@ const PasteCodeEditor: React.FC = () => {
                       ? "none"
                       : "inset 0 1px 2px rgba(0,0,0,0.05)",
                     flex: 1,
+                    width: "100%",
+                    minWidth: "100%",
                   }}
                   className="p-4 overflow-auto"
                 >
