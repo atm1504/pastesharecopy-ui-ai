@@ -897,7 +897,7 @@ const PasteCodeEditor: React.FC = () => {
       code: string;
       language: string;
       title: string;
-      expiresAt: any;
+      expiresAt: string | Date;
       isConfidential: boolean;
     } | null;
 
