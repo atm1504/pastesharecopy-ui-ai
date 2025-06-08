@@ -7,7 +7,7 @@ import StatsSection from "@/components/StatsSection";
 import FooterSection from "@/components/FooterSection";
 import { LinkListSidebar } from "@/components/LinkListSidebar";
 import AdBanner, { InterstitialAd } from "@/components/AdBanner";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuthContext } from "@/contexts/AuthContext";
 
 const Index: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -20,7 +20,19 @@ const Index: React.FC = () => {
     trigger: "session_time",
   });
   const [floatingAdVisible, setFloatingAdVisible] = useState(false);
-  const { profile } = useAuth();
+  const { profile, refreshProfile } = useAuthContext();
+
+  // Refresh profile when component mounts to ensure available links are up to date
+  useEffect(() => {
+    refreshProfile().catch(console.error);
+  }, [refreshProfile]);
+
+  // Refresh profile when sidebar is opened to ensure latest available links
+  useEffect(() => {
+    if (sidebarOpen) {
+      refreshProfile().catch(console.error);
+    }
+  }, [sidebarOpen, refreshProfile]);
 
   // Session tracking for strategic ad timing
   useEffect(() => {

@@ -31,6 +31,7 @@ import {
   type UserSnippet,
   type DailyUsageResponse,
 } from "@/lib/api";
+import { useAuthContext } from "@/contexts/AuthContext";
 
 interface LinkListSidebarProps {
   open: boolean;
@@ -42,6 +43,7 @@ export const LinkListSidebar: React.FC<LinkListSidebarProps> = ({
   onClose,
 }) => {
   const { t } = useTranslation();
+  const { profile } = useAuthContext();
   const [snippets, setSnippets] = useState<UserSnippet[]>([]);
   const [dailyUsage, setDailyUsage] = useState<DailyUsageResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -184,9 +186,9 @@ export const LinkListSidebar: React.FC<LinkListSidebarProps> = ({
                         {t("usage.availableLinks")}
                       </div>
                       <div className="font-medium">
-                        {dailyUsage.availableLinks === -1
+                        {profile?.subscription?.plan
                           ? t("usage.unlimited")
-                          : dailyUsage.availableLinks}
+                          : profile?.availableLinks || 0}
                       </div>
                     </div>
                   </div>
