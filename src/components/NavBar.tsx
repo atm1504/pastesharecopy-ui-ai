@@ -133,12 +133,6 @@ const NavBar: React.FC<NavBarProps> = ({ onViewLinksClick }) => {
                 <span className="mr-2">Links:</span> {profile.availableLinks}{" "}
                 available
               </DropdownMenuItem>
-              {profile.gamePoints > 0 && (
-                <DropdownMenuItem>
-                  <span className="mr-2">Game Points:</span>{" "}
-                  {profile.gamePoints}
-                </DropdownMenuItem>
-              )}
               <DropdownMenuSeparator />
               {profile.isAuthenticated ? (
                 <DropdownMenuItem onClick={() => signOut()}>

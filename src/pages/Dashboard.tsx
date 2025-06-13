@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import NavBar from "@/components/NavBar";
 import FooterSection from "@/components/FooterSection";
 import { useAuthContext } from "@/contexts/AuthContext";
+import { useGamePoints } from "@/contexts/GamePointsContext";
 import {
   Card,
   CardContent,
@@ -70,6 +71,7 @@ const Dashboard: React.FC<DashboardProps> = ({ view = "links" }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState(view);
+  const { sessionGamePoints } = useGamePoints();
   const { toast } = useToast();
 
   // State for snippets and usage data
@@ -130,7 +132,8 @@ const Dashboard: React.FC<DashboardProps> = ({ view = "links" }) => {
   // Load data when component mounts
   useEffect(() => {
     fetchData();
-  }, []);
+    refreshProfile().catch(console.error);
+  }, [refreshProfile]);
 
   const handlePageChange = (page: number) => {
     if (page >= 1 && page <= totalPages) {
@@ -372,11 +375,6 @@ const Dashboard: React.FC<DashboardProps> = ({ view = "links" }) => {
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Target className="h-5 w-5" />
                   Game Points
-                  {(profile?.gamePoints || 0) > 1000 && (
-                    <Badge className="bg-gradient-to-r from-yellow-400 to-orange-500 text-black">
-                      🔥 Hot Streak!
-                    </Badge>
-                  )}
                 </CardTitle>
                 <CardDescription>
                   Play to unlock premium features
@@ -384,7 +382,7 @@ const Dashboard: React.FC<DashboardProps> = ({ view = "links" }) => {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold">
-                  {(profile?.gamePoints || 0).toLocaleString()}
+                  {sessionGamePoints.toLocaleString()}
                   <span className="text-lg text-muted-foreground ml-2">
                     points
                   </span>
@@ -395,7 +393,7 @@ const Dashboard: React.FC<DashboardProps> = ({ view = "links" }) => {
                   const nextUnlockThresholds = [
                     500, 1000, 2000, 4000, 7000, 12000, 20000,
                   ];
-                  const currentPoints = profile?.gamePoints || 0;
+                  const currentPoints = sessionGamePoints;
                   const nextThreshold = nextUnlockThresholds.find(
                     (threshold) => currentPoints < threshold
                   );
@@ -423,11 +421,6 @@ const Dashboard: React.FC<DashboardProps> = ({ view = "links" }) => {
                   Play Game
                 </Button>
               </CardFooter>
-
-              {/* Animated background for high scorers */}
-              {(profile?.gamePoints || 0) > 5000 && (
-                <div className="absolute inset-0 bg-gradient-to-br from-yellow-50/50 to-orange-50/50 dark:from-yellow-950/20 dark:to-orange-950/20 pointer-events-none" />
-              )}
             </Card>
 
             {/* Subscription Status - psychological framing */}

@@ -13,6 +13,7 @@ import Login from "./pages/Login";
 import Premium from "./pages/Premium";
 import SnippetView from "./pages/SnippetView";
 import { AuthProvider } from "./contexts/AuthContext";
+import { GamePointsProvider } from "./contexts/GamePointsContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { Loader2 } from "lucide-react";
 
@@ -41,70 +42,72 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="dark">
         <AuthProvider>
-          <TooltipProvider>
-            {/* Background is rendered outside of BrowserRouter to ensure it's always visible */}
-            <DynamicBackground />
+          <GamePointsProvider>
+            <TooltipProvider>
+              {/* Background is rendered outside of BrowserRouter to ensure it's always visible */}
+              <DynamicBackground />
 
-            <Toaster />
-            <Sonner />
+              <Toaster />
+              <Sonner />
 
-            <BrowserRouter>
-              <div
-                className={`min-h-screen font-sans antialiased relative ${
-                  isDarkMode ? "bg-background/70" : "bg-background/60"
-                }`}
-              >
-                <Routes>
-                  {/* Public routes */}
-                  <Route path="/" element={<Index />} />
-                  <Route path="/pricing" element={<Pricing />} />
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/premium" element={<Premium />} />
+              <BrowserRouter>
+                <div
+                  className={`min-h-screen font-sans antialiased relative ${
+                    isDarkMode ? "bg-background/70" : "bg-background/60"
+                  }`}
+                >
+                  <Routes>
+                    {/* Public routes */}
+                    <Route path="/" element={<Index />} />
+                    <Route path="/pricing" element={<Pricing />} />
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/premium" element={<Premium />} />
 
-                  {/* Protected routes */}
-                  <Route
-                    path="/dashboard"
-                    element={
-                      <ProtectedRoute>
-                        <Suspense fallback={<LoadingFallback />}>
-                          <Dashboard />
-                        </Suspense>
-                      </ProtectedRoute>
-                    }
-                  />
+                    {/* Protected routes */}
+                    <Route
+                      path="/dashboard"
+                      element={
+                        <ProtectedRoute>
+                          <Suspense fallback={<LoadingFallback />}>
+                            <Dashboard />
+                          </Suspense>
+                        </ProtectedRoute>
+                      }
+                    />
 
-                  {/* Dashboard sub-routes example */}
-                  <Route
-                    path="/dashboard/links"
-                    element={
-                      <ProtectedRoute>
-                        <Suspense fallback={<LoadingFallback />}>
-                          <Dashboard view="links" />
-                        </Suspense>
-                      </ProtectedRoute>
-                    }
-                  />
+                    {/* Dashboard sub-routes example */}
+                    <Route
+                      path="/dashboard/links"
+                      element={
+                        <ProtectedRoute>
+                          <Suspense fallback={<LoadingFallback />}>
+                            <Dashboard view="links" />
+                          </Suspense>
+                        </ProtectedRoute>
+                      }
+                    />
 
-                  <Route
-                    path="/dashboard/settings"
-                    element={
-                      <ProtectedRoute>
-                        <Suspense fallback={<LoadingFallback />}>
-                          <Dashboard view="settings" />
-                        </Suspense>
-                      </ProtectedRoute>
-                    }
-                  />
+                    <Route
+                      path="/dashboard/settings"
+                      element={
+                        <ProtectedRoute>
+                          <Suspense fallback={<LoadingFallback />}>
+                            <Dashboard view="settings" />
+                          </Suspense>
+                        </ProtectedRoute>
+                      }
+                    />
 
-                  {/* Load snippets in the main editor */}
-                  <Route path="/:shortUrl" element={<Index />} />
+                    {/* Snippet view route - handles short URLs (place before fallback) */}
+                    <Route path="/:shortUrl" element={<SnippetView />} />
 
-                  {/* Fallback route */}
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </div>
-            </BrowserRouter>
-          </TooltipProvider>
+                    {/* Fallback route */}
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </div>
+              </BrowserRouter>
+            </TooltipProvider>
+          </GamePointsProvider>
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>

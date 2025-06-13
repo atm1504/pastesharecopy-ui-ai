@@ -101,7 +101,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 // Define the editor modes
-type EditorMode = 'new' | 'edit';
+type EditorMode = "new" | "edit";
 
 interface ButtonProps {
   variant: "default" | "ghost";
@@ -953,7 +953,7 @@ const PasteCodeEditor: React.FC = () => {
         setCode(response.snippet.content);
         setLanguage(response.snippet.language);
         setSnippetId(response.snippet.id);
-        
+
         // Set the generated link
         const fullUrl = `${window.location.origin}/${shortUrl}`;
         setGeneratedLink(fullUrl);
@@ -964,15 +964,18 @@ const PasteCodeEditor: React.FC = () => {
           let expiresAt: Date;
 
           // Handle Firestore timestamp format
-          if (typeof response.snippet.expiresAt === 'object' && 'seconds' in response.snippet.expiresAt) {
+          if (
+            typeof response.snippet.expiresAt === "object" &&
+            "seconds" in response.snippet.expiresAt
+          ) {
             expiresAt = new Date(response.snippet.expiresAt.seconds * 1000);
           }
           // Handle ISO string format
-          else if (typeof response.snippet.expiresAt === 'string') {
+          else if (typeof response.snippet.expiresAt === "string") {
             expiresAt = new Date(response.snippet.expiresAt);
           }
           // Handle timestamp number
-          else if (typeof response.snippet.expiresAt === 'number') {
+          else if (typeof response.snippet.expiresAt === "number") {
             expiresAt = new Date(response.snippet.expiresAt);
           }
           // Handle Date object
@@ -998,7 +1001,8 @@ const PasteCodeEditor: React.FC = () => {
         });
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Failed to load snippet";
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to load snippet";
       setError(errorMessage);
       toast({
         title: "Error",
@@ -1104,7 +1108,7 @@ const PasteCodeEditor: React.FC = () => {
           snippetId,
           code,
           language,
-          password: values.editPassword
+          password: values.editPassword,
         };
 
         const result = await updateSnippet(updateData);
@@ -1129,7 +1133,7 @@ const PasteCodeEditor: React.FC = () => {
         const result = await createSnippet(snippetData);
         const baseUrl = window.location.origin;
         const fullUrl = `${baseUrl}/${result.shortUrl}`;
-        
+
         // Store the snippetId to enable edit mode
         setSnippetId(result.snippetId);
         setGeneratedLink(fullUrl);
@@ -1145,12 +1149,14 @@ const PasteCodeEditor: React.FC = () => {
         });
       }
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
-      
+      const errorMessage =
+        error instanceof Error ? error.message : "An unknown error occurred";
+
       if (errorMessage.includes("snippet limit")) {
         toast({
           title: "Snippet Limit Reached",
-          description: "You've reached your snippet limit. Upgrade to premium for unlimited snippets!",
+          description:
+            "You've reached your snippet limit. Upgrade to premium for unlimited snippets!",
           variant: "destructive",
           action: (
             <Button
@@ -1412,7 +1418,10 @@ const PasteCodeEditor: React.FC = () => {
           <div className="text-center max-w-md mx-auto px-4">
             <h1 className="text-2xl font-bold mb-4">Error Loading Snippet</h1>
             <p className="text-muted-foreground mb-6">{error}</p>
-            <Button onClick={() => window.location.href = "/"} className="w-full">
+            <Button
+              onClick={() => (window.location.href = "/")}
+              className="w-full"
+            >
               Create New Snippet
             </Button>
           </div>
@@ -1619,13 +1628,10 @@ const PasteCodeEditor: React.FC = () => {
                       <div className="flex flex-col sm:flex-row sm:items-center gap-2 min-w-0">
                         <a
                           href={generatedLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
                           className="text-xs font-mono bg-secondary/50 px-2 py-1.5 rounded max-w-full overflow-x-auto whitespace-nowrap hover:bg-secondary/70 transition-colors break-all sm:max-w-[200px] lg:max-w-[280px]"
                           title={generatedLink}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            window.history.pushState({}, '', generatedLink);
-                            loadSnippet(generatedLink.split('/').pop() || '');
-                          }}
                         >
                           {generatedLink}
                         </a>
@@ -1645,7 +1651,7 @@ const PasteCodeEditor: React.FC = () => {
                             size="sm"
                             variant="ghost"
                             className="h-7 px-2"
-                            onClick={() => window.open(generatedLink, '_blank')}
+                            onClick={() => window.open(generatedLink, "_blank")}
                             title="Open in new tab"
                           >
                             <ExternalLink size={13} className="mr-1" />
@@ -1658,10 +1664,16 @@ const PasteCodeEditor: React.FC = () => {
                 </div>
 
                 <Form {...form}>
-                  <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+                  <form
+                    onSubmit={form.handleSubmit(handleSubmit)}
+                    className="space-y-4"
+                  >
                     <div className="flex flex-wrap gap-4">
                       <div className="flex items-center gap-2 bg-secondary/20 hover:bg-secondary/30 rounded-md p-2 transition-colors flex-1 min-w-0">
-                        <Clock size={15} className="text-primary flex-shrink-0" />
+                        <Clock
+                          size={15}
+                          className="text-primary flex-shrink-0"
+                        />
                         <FormField
                           control={form.control}
                           name="expiration"
@@ -1792,7 +1804,8 @@ const PasteCodeEditor: React.FC = () => {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground flex items-center">
-                      <Clock size={15} className="mr-1.5" /> {t("editor.justNow")}
+                      <Clock size={15} className="mr-1.5" />{" "}
+                      {t("editor.justNow")}
                     </span>
                     <span className="text-sm font-medium">
                       {t("editor.justNow")}

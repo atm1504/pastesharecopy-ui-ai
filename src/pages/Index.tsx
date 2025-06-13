@@ -7,7 +7,7 @@ import StatsSection from "@/components/StatsSection";
 import FooterSection from "@/components/FooterSection";
 import { LinkListSidebar } from "@/components/LinkListSidebar";
 import AdBanner, { InterstitialAd } from "@/components/AdBanner";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuthContext } from "@/contexts/AuthContext";
 
 const Index: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -20,7 +20,19 @@ const Index: React.FC = () => {
     trigger: "session_time",
   });
   const [floatingAdVisible, setFloatingAdVisible] = useState(false);
-  const { profile } = useAuth();
+  const { profile, refreshProfile } = useAuthContext();
+
+  // Refresh profile when component mounts to ensure available links are up to date
+  useEffect(() => {
+    refreshProfile().catch(console.error);
+  }, [refreshProfile]);
+
+  // Refresh profile when sidebar is opened to ensure latest available links
+  useEffect(() => {
+    if (sidebarOpen) {
+      refreshProfile().catch(console.error);
+    }
+  }, [sidebarOpen, refreshProfile]);
 
   // Session tracking for strategic ad timing
   useEffect(() => {
@@ -87,22 +99,22 @@ const Index: React.FC = () => {
       <main className="flex-grow">
         {/* Strategic banner ad placement - after user engagement */}
         {sessionTime > 60 && !profile?.subscription?.plan && (
-          <div className="container max-w-6xl mx-auto px-4 py-4">
+          <div className="container max-w-7xl mx-auto px-4 py-4">
             <AdBanner position="banner" size="medium" className="mb-4" />
           </div>
         )}
 
         <section id="paste" className="py-8">
-          <div className="container">
-            <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
-              {/* Main content - takes full width on smaller screens */}
-              <div className="xl:col-span-3">
+          <div className="max-w-[1600px] mx-auto px-0">
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-0">
+              {/* Centered code area with equal space left/right */}
+              <div className="xl:col-span-8 xl:col-start-3">
                 <PasteCodeEditor />
               </div>
 
-              {/* Sidebar ads for free users - only on extra large screens */}
+              {/* Sidebar ads for free users - flush right on xl+ */}
               {!profile?.subscription?.plan && (
-                <div className="xl:col-span-1 hidden xl:block">
+                <div className="xl:col-span-2 xl:col-start-11 hidden xl:block">
                   <div className="sticky top-24 space-y-6">
                     <AdBanner position="sidebar" size="medium" />
 
@@ -166,7 +178,7 @@ const Index: React.FC = () => {
 
         {/* Another strategic ad placement before stats */}
         {sessionTime > 300 && !profile?.subscription?.plan && (
-          <div className="container max-w-6xl mx-auto px-4 py-4">
+          <div className="container max-w-7xl mx-auto px-4 py-4">
             <AdBanner position="banner" size="large" className="my-6" />
           </div>
         )}

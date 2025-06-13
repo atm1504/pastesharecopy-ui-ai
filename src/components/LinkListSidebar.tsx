@@ -25,8 +25,13 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { getUserSnippets, type UserSnippet } from "@/lib/api";
-import { useAuth } from "@/hooks/useAuth";
+import {
+  getUserSnippets,
+  getDailyUsage,
+  type UserSnippet,
+  type DailyUsageResponse,
+} from "@/lib/api";
+import { useAuthContext } from "@/contexts/AuthContext";
 
 interface LinkListSidebarProps {
   open: boolean;
@@ -38,7 +43,7 @@ export const LinkListSidebar: React.FC<LinkListSidebarProps> = ({
   onClose,
 }) => {
   const { t } = useTranslation();
-  const { profile } = useAuth();
+  const { profile } = useAuthContext();
   const [snippets, setSnippets] = useState<UserSnippet[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -234,9 +239,9 @@ export const LinkListSidebar: React.FC<LinkListSidebarProps> = ({
                         {t("usage.availableLinks")}
                       </div>
                       <div className="font-medium">
-                        {profile.availableLinks === -1
+                        {profile?.subscription?.plan
                           ? t("usage.unlimited")
-                          : profile.availableLinks}
+                          : profile?.availableLinks || 0}
                       </div>
                     </div>
                   </div>

@@ -9,6 +9,8 @@ import {
 } from "./ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { submitGameScore } from "@/lib/api";
+import { useAuthContext } from "@/contexts/AuthContext";
+import { useGamePoints } from "@/contexts/GamePointsContext";
 
 // Add pulsing animation for the tutorial
 const pulseKeyframes = `
@@ -79,6 +81,9 @@ const DynamicBackground: React.FC = () => {
   const { resolvedTheme } = useTheme();
   const isDarkMode = resolvedTheme === "dark";
   const { toast } = useToast();
+  const { refreshProfile } = useAuthContext();
+  const { sessionGamePoints, setSessionGamePoints, resetSessionGamePoints } =
+    useGamePoints();
 
   // State for game elements
   const [showScore, setShowScore] = useState(false);
@@ -603,23 +608,6 @@ const DynamicBackground: React.FC = () => {
       }, 500);
     }
 
-    // Update high score with celebration
-    if (gameState.score > highScore) {
-      const isNewRecord = highScore > 0;
-      setHighScore(gameState.score);
-      localStorage.setItem("blobGameHighScore", gameState.score.toString());
-
-      if (isNewRecord) {
-        setTimeout(() => {
-          toast({
-            title: "🔥 NEW HIGH SCORE!",
-            description: `You broke your personal record with ${gameState.score} points!`,
-            duration: 4000,
-          });
-        }, 200);
-      }
-    }
-
     // Show score UI element
     setShowScore(true);
     setShowTutorial(false);
@@ -668,6 +656,30 @@ const DynamicBackground: React.FC = () => {
       // Update last submission score
       gameState.lastSubmissionScore = gameState.score;
 
+      // Update session game points
+      setSessionGamePoints(gameState.score);
+
+      // If additional links were earned, refresh the profile to update available links everywhere
+      if (response.additionalLinksEarned > 0) {
+        try {
+          // Refresh profile first to get the latest available links
+          const updatedProfile = await refreshProfile();
+
+          // Then show the notification with the correct value
+          setTimeout(() => {
+            toast({
+              title: `🔗 Daily Limit Increased!`,
+              description: `You now have ${updatedProfile.availableLinks} daily pastes available!`,
+              duration: 5000,
+            });
+          }, 2000);
+
+          console.log("Profile refreshed after earning additional links");
+        } catch (err) {
+          console.error("Error refreshing profile:", err);
+        }
+      }
+
       // Show achievement notifications for newly unlocked milestones
       if (response.newlyUnlocked && response.newlyUnlocked.length > 0) {
         response.newlyUnlocked.forEach((achievement, index) => {
@@ -680,20 +692,8 @@ const DynamicBackground: React.FC = () => {
           }, (index + 1) * 1000);
         });
       }
-
-      // Show additional paste links notification if any were earned
-      if (response.additionalLinksEarned > 0) {
-        setTimeout(() => {
-          toast({
-            title: `🔗 Daily Limit Increased!`,
-            description: `You now have ${response.totalAvailableLinks} daily pastes available!`,
-            duration: 5000,
-          });
-        }, 2000);
-      }
     } catch (error) {
       console.error("Failed to submit game score:", error);
-      // Don't show error to user to avoid breaking game flow
     }
   };
 
@@ -1079,6 +1079,9 @@ const DynamicBackground: React.FC = () => {
       setHighScore(parseInt(savedHighScore, 10));
     }
 
+    // Reset sessionGamePoints to 0 on mount
+    resetSessionGamePoints();
+
     return () => {
       // Submit final score before cleanup
       const gameState = gameStateRef.current;
@@ -1258,20 +1261,19 @@ const DynamicBackground: React.FC = () => {
           }}
         >
           <div className="text-xl sm:text-2xl font-bold animate-pulse break-words leading-tight overflow-hidden">
-            {gameStateRef.current.score.toLocaleString()}
+            {sessionGamePoints.toLocaleString()}
             <span className="text-sm ml-1">pts</span>
           </div>
 
           {/* Progress to next unlock */}
           {(() => {
             const nextUnlock = unlockRequirements.find(
-              (req) => gameStateRef.current.score < req.points
+              (req) => sessionGamePoints < req.points
             );
 
             if (nextUnlock) {
-              const progress =
-                (gameStateRef.current.score / nextUnlock.points) * 100;
-              const remaining = nextUnlock.points - gameStateRef.current.score;
+              const progress = (sessionGamePoints / nextUnlock.points) * 100;
+              const remaining = nextUnlock.points - sessionGamePoints;
 
               return (
                 <div className="mt-2">
@@ -1331,7 +1333,7 @@ const DynamicBackground: React.FC = () => {
 
           {/* Motivational messages */}
           {(() => {
-            const score = gameStateRef.current.score;
+            const score = sessionGamePoints;
             if (score > 50000)
               return (
                 <div className="text-xs mt-1 text-center">🌟 Elite Gamer!</div>
@@ -1436,7 +1438,7 @@ const DynamicBackground: React.FC = () => {
                   Current Score:
                 </span>
                 <span className="text-xl font-bold text-emerald-600 dark:text-emerald-400 break-words text-right">
-                  {gameStateRef.current.score.toLocaleString()} points
+                  {sessionGamePoints.toLocaleString()} points
                 </span>
               </div>
               <div className="flex justify-between items-center gap-2">
@@ -1456,14 +1458,14 @@ const DynamicBackground: React.FC = () => {
               </h3>
               <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
                 {unlockRequirements.map((req, index) => {
-                  const isUnlocked = gameStateRef.current.score >= req.points;
+                  const isUnlocked = sessionGamePoints >= req.points;
                   const isNext =
                     !isUnlocked &&
                     (index === 0 ||
-                      gameStateRef.current.score >=
+                      sessionGamePoints >=
                         unlockRequirements[index - 1].points);
                   const progress = isNext
-                    ? (gameStateRef.current.score / req.points) * 100
+                    ? (sessionGamePoints / req.points) * 100
                     : 0;
 
                   return (
@@ -1528,7 +1530,7 @@ const DynamicBackground: React.FC = () => {
                             <span className="flex-shrink-0">Progress</span>
                             <span className="break-words text-right">
                               {(
-                                req.points - gameStateRef.current.score
+                                req.points - sessionGamePoints
                               ).toLocaleString()}{" "}
                               more needed
                             </span>
@@ -1645,7 +1647,7 @@ const DynamicBackground: React.FC = () => {
                     : "rgba(100, 150, 50, 1)",
                 }}
               >
-                🎯 Current: {gameStateRef.current.score.toLocaleString()} pts
+                🎯 Current: {sessionGamePoints.toLocaleString()} pts
               </div>
             </div>
           </div>
