@@ -37,15 +37,30 @@ import {
   Target,
   Gift,
   Timer,
+  Lock,
+  EyeOff,
+  Copy,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
   getUserSnippets,
   getDailyUsage,
+  getSnippetPassword,
   type UserSnippet,
   type DailyUsageResponse,
 } from "@/lib/api";
 import AdBanner from "@/components/AdBanner";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface DashboardProps {
   view?: "links" | "settings";
@@ -57,6 +72,7 @@ const Dashboard: React.FC<DashboardProps> = ({ view = "links" }) => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState(view);
   const { sessionGamePoints } = useGamePoints();
+  const { toast } = useToast();
 
   // State for snippets and usage data
   const [snippets, setSnippets] = useState<UserSnippet[]>([]);
@@ -66,6 +82,14 @@ const Dashboard: React.FC<DashboardProps> = ({ view = "links" }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+
+  // State for password management
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [selectedSnippet, setSelectedSnippet] = useState<UserSnippet | null>(
+    null
+  );
+  const [snippetPassword, setSnippetPassword] = useState("");
+  const [loadingPassword, setLoadingPassword] = useState(false);
 
   // Set active tab based on prop
   useEffect(() => {
@@ -137,6 +161,74 @@ const Dashboard: React.FC<DashboardProps> = ({ view = "links" }) => {
     return (dailyUsage.usedToday / dailyUsage.dailyLimit) * 100;
   };
 
+  // Function to handle viewing password for a snippet
+  const handleViewPassword = async (snippet: UserSnippet) => {
+    if (!snippet.isPasswordProtected || !snippet.hasPassword) {
+      toast({
+        title: "No Password",
+        description: "This snippet is not password protected.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSelectedSnippet(snippet);
+    setLoadingPassword(true);
+    setSnippetPassword("");
+
+    try {
+      const response = await getSnippetPassword(snippet.id);
+      if (response.success && response.hasPassword && response.password) {
+        setSnippetPassword(response.password);
+        setShowPasswordDialog(true);
+      } else {
+        toast({
+          title: "No Password Found",
+          description: "No password found for this snippet.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error getting snippet password:", error);
+      toast({
+        title: "Error",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to retrieve password",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingPassword(false);
+    }
+  };
+
+  // Function to copy password to clipboard
+  const copyPasswordToClipboard = async () => {
+    if (!snippetPassword) return;
+
+    try {
+      await navigator.clipboard.writeText(snippetPassword);
+      toast({
+        title: "Copied!",
+        description: "Password copied to clipboard",
+      });
+    } catch (err) {
+      toast({
+        title: "Failed to copy",
+        description: "Please copy the password manually",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Function to close password dialog
+  const closePasswordDialog = () => {
+    setShowPasswordDialog(false);
+    setSelectedSnippet(null);
+    setSnippetPassword("");
+  };
+
   if (authLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
@@ -195,20 +287,36 @@ const Dashboard: React.FC<DashboardProps> = ({ view = "links" }) => {
                   {profile.subscription?.plan ? "∞" : profile.availableLinks}
                   {!profile.subscription?.plan && (
                     <span className="text-lg text-muted-foreground ml-2">
-                      / 10 today
+                      / {profile.dailyLimit || 10} today
                     </span>
                   )}
                 </div>
+
+                {/* Show gaming bonus if user has earned extra links */}
+                {!profile.subscription?.plan &&
+                  (profile.dailyLimit || 10) > 10 && (
+                    <div className="text-xs text-green-600 dark:text-green-400 mt-1">
+                      🎮 Gaming bonus: +{(profile.dailyLimit || 10) - 10} extra
+                      daily links!
+                    </div>
+                  )}
 
                 {/* Progress bar for free users */}
                 {!profile.subscription?.plan && (
                   <div className="mt-2">
                     <Progress
-                      value={(profile.availableLinks / 10) * 100}
+                      value={
+                        (((profile.dailyLimit || 10) - profile.availableLinks) /
+                          (profile.dailyLimit || 10)) *
+                        100
+                      }
                       className="h-2"
                     />
                     <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                      <span>Used: {10 - profile.availableLinks}</span>
+                      <span>
+                        Used:{" "}
+                        {(profile.dailyLimit || 10) - profile.availableLinks}
+                      </span>
                       <span>Remaining: {profile.availableLinks}</span>
                     </div>
                   </div>
@@ -572,6 +680,15 @@ const Dashboard: React.FC<DashboardProps> = ({ view = "links" }) => {
                                       {t("links.confidential")}
                                     </Badge>
                                   )}
+                                  {snippet.isPasswordProtected && (
+                                    <Badge
+                                      variant="outline"
+                                      className="text-xs flex items-center gap-1"
+                                    >
+                                      <Lock size={8} />
+                                      Password Protected
+                                    </Badge>
+                                  )}
                                   {isExpired(snippet.expiresAt) && (
                                     <Badge
                                       variant="destructive"
@@ -583,23 +700,48 @@ const Dashboard: React.FC<DashboardProps> = ({ view = "links" }) => {
                                   )}
                                 </div>
                               </div>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 ml-2"
-                                asChild
-                              >
-                                <a
-                                  href={`${window.location.origin}/${snippet.shortUrl}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
+                              <div className="flex items-center gap-2 ml-2">
+                                {/* View Password Button for password-protected snippets */}
+                                {snippet.isPasswordProtected &&
+                                  snippet.hasPassword && (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8"
+                                      onClick={() =>
+                                        handleViewPassword(snippet)
+                                      }
+                                      disabled={loadingPassword}
+                                      title="View password for this snippet"
+                                    >
+                                      {loadingPassword ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                      ) : (
+                                        <EyeOff size={14} />
+                                      )}
+                                      <span className="sr-only">
+                                        View Password
+                                      </span>
+                                    </Button>
+                                  )}
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  asChild
                                 >
-                                  <ExternalLink size={14} />
-                                  <span className="sr-only">
-                                    {t("navigation.openLink")}
-                                  </span>
-                                </a>
-                              </Button>
+                                  <a
+                                    href={`${window.location.origin}/${snippet.shortUrl}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                  >
+                                    <ExternalLink size={14} />
+                                    <span className="sr-only">
+                                      {t("navigation.openLink")}
+                                    </span>
+                                  </a>
+                                </Button>
+                              </div>
                             </div>
                             <div className="mt-2 text-xs bg-muted p-2 rounded font-mono truncate">
                               {window.location.host}/{snippet.shortUrl}
@@ -705,6 +847,54 @@ const Dashboard: React.FC<DashboardProps> = ({ view = "links" }) => {
         </Tabs>
       </main>
       <FooterSection />
+
+      {/* Password Dialog */}
+      <Dialog open={showPasswordDialog} onOpenChange={closePasswordDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Lock className="h-5 w-5" />
+              Snippet Password
+            </DialogTitle>
+            <DialogDescription>
+              Password for "{selectedSnippet?.title}"
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <div className="flex space-x-2">
+                <Input
+                  id="password"
+                  type="text"
+                  value={snippetPassword}
+                  readOnly
+                  className="font-mono"
+                  placeholder="Loading password..."
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={copyPasswordToClipboard}
+                  disabled={!snippetPassword}
+                  title="Copy password to clipboard"
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+            {snippetPassword && (
+              <div className="text-sm text-muted-foreground">
+                <p>This password is required to view the snippet content.</p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button onClick={closePasswordDialog}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
