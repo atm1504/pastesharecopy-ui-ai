@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   signInWithPopup,
   signOut as firebaseSignOut,
@@ -52,6 +52,7 @@ export function useAuth() {
   // Listen for Firebase auth changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      setLoading(true); // Set loading true while fetching profile
       setUser(currentUser);
 
       try {
@@ -68,7 +69,7 @@ export function useAuth() {
     return () => unsubscribe();
   }, []);
 
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = useCallback(async () => {
     setError(null);
     try {
       const result = await signInWithPopup(auth, googleProvider);
@@ -92,9 +93,9 @@ export function useAuth() {
       );
       return null;
     }
-  };
+  }, []);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     setError(null);
     try {
       await firebaseSignOut(auth);
@@ -112,9 +113,9 @@ export function useAuth() {
         err instanceof Error ? err.message : "An error occurred during sign out"
       );
     }
-  };
+  }, []);
 
-  const refreshProfile = async () => {
+  const refreshProfile = useCallback(async () => {
     try {
       const userProfileData = await getUserProfile();
       setProfile(userProfileData as UserProfile);
@@ -123,7 +124,7 @@ export function useAuth() {
       console.error("Error refreshing user profile:", err);
       throw err;
     }
-  };
+  }, []);
 
   return {
     user,

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -51,7 +51,7 @@ export const LinkListSidebar: React.FC<LinkListSidebarProps> = ({
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
 
-  const fetchSnippets = async (page: number = 1) => {
+  const fetchSnippets = useCallback(async (page: number = 1) => {
     setLoading(true);
     setError(null);
 
@@ -68,24 +68,24 @@ export const LinkListSidebar: React.FC<LinkListSidebarProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (open) {
       fetchSnippets(1);
+    }
+  }, [open, fetchSnippets]);
 
-      // Debug logging for available links calculation
-      if (process.env.NODE_ENV === "development" && profile) {
-        console.log("LinkListSidebar: Profile data", {
-          isAuthenticated: profile.isAuthenticated,
-          subscription: profile.subscription,
-          availableLinks: profile.availableLinks,
-          dailyLimit: profile.dailyLimit,
-          totalLinksCreated: profile.totalLinksCreated,
-          usedToday: getUsedToday(),
-          remaining: getRemaining(),
-        });
-      }
+  // Debug logging for profile changes
+  useEffect(() => {
+    if (open && process.env.NODE_ENV === "development" && profile) {
+      console.log("LinkListSidebar: Profile data updated", {
+        isAuthenticated: profile.isAuthenticated,
+        subscription: profile.subscription,
+        availableLinks: profile.availableLinks,
+        dailyLimit: profile.dailyLimit,
+        totalLinksCreated: profile.totalLinksCreated,
+      });
     }
   }, [open, profile]);
 
