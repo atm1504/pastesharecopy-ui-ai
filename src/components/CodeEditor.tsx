@@ -907,8 +907,8 @@ const PasteCodeEditor: React.FC = () => {
     },
   });
 
-  const editorContainerRef = useRef<HTMLDivElement>(null);
-  usePreventPageScroll(editorContainerRef);
+  const editorTabRef = useRef<HTMLDivElement>(null);
+  usePreventPageScroll(editorTabRef);
 
   // Track if user has edited the code
   const userHasEditedCode = useRef(false);
@@ -1471,7 +1471,11 @@ const PasteCodeEditor: React.FC = () => {
 
             <div className="bg-card border rounded-lg shadow-sm overflow-hidden mb-2">
               <TabsContent value="editor" className="mt-0">
-                <div className="h-[71vh] flex flex-col">
+                <div
+                  className="h-[71vh] flex flex-col"
+                  ref={editorTabRef}
+                  style={{ overflow: "auto" }}
+                >
                   <div className="code-header flex items-center justify-between p-2 border-b">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-mono">{language}</span>
@@ -1533,10 +1537,7 @@ const PasteCodeEditor: React.FC = () => {
                     </div>
                   </div>
 
-                  <div
-                    className="flex flex-1 relative"
-                    ref={editorContainerRef}
-                  >
+                  <div className="flex flex-1 relative">
                     <div
                       className={`py-4 text-muted-foreground text-right select-none font-mono text-xs w-[3.5rem] overflow-y-hidden flex flex-col absolute top-0 left-0 h-full z-10 ${
                         isDarkMode ? "bg-[#181824]" : "bg-gray-100"
