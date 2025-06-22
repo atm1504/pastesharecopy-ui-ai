@@ -66,6 +66,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { LanguageSelect } from "@/components/LanguageSelect";
 import { useLocation, useParams } from "react-router-dom";
+import { usePreventPageScroll } from "@/hooks/usePreventPageScroll";
 
 // Import light theme for hljs
 import "highlight.js/styles/github.css";
@@ -906,6 +907,9 @@ const PasteCodeEditor: React.FC = () => {
     },
   });
 
+  const editorContainerRef = useRef<HTMLDivElement>(null);
+  usePreventPageScroll(editorContainerRef);
+
   // Track if user has edited the code
   const userHasEditedCode = useRef(false);
 
@@ -1529,9 +1533,12 @@ const PasteCodeEditor: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="flex flex-1 relative">
+                  <div
+                    className="flex flex-1 relative"
+                    ref={editorContainerRef}
+                  >
                     <div
-                      className={`py-4 text-muted-foreground text-right select-none font-mono text-xs w-[3.5rem] overflow-y-hidden flex flex-col ${
+                      className={`py-4 text-muted-foreground text-right select-none font-mono text-xs w-[3.5rem] overflow-y-hidden flex flex-col absolute top-0 left-0 h-full z-10 ${
                         isDarkMode ? "bg-[#181824]" : "bg-gray-100"
                       }`}
                     >
@@ -1551,24 +1558,26 @@ const PasteCodeEditor: React.FC = () => {
                         !isDarkMode ? "border-l border-gray-200" : ""
                       }`}
                     >
-                      <CodeEditor
-                        value={code}
-                        language={language}
-                        placeholder="Paste your code or start typing..."
-                        onChange={handleCodeChange}
-                        padding={15}
-                        style={{
-                          fontSize: "1rem",
-                          fontFamily: "'JetBrains Mono', monospace",
-                          backgroundColor: isDarkMode ? "#151520" : "#fcfcfc",
-                          color: isDarkMode ? "#ffffff" : "#333333",
-                          height: "100%",
-                          borderRadius: "0",
-                          lineHeight: "1.5rem",
-                        }}
-                        className="w-full outline-none resize-none h-full"
-                        data-color-mode={isDarkMode ? "dark" : "light"}
-                      />
+                      <div style={{ paddingLeft: "4rem", height: "100%" }}>
+                        <CodeEditor
+                          value={code}
+                          language={language}
+                          placeholder="Paste your code or start typing..."
+                          onChange={handleCodeChange}
+                          padding={15}
+                          style={{
+                            fontSize: "1rem",
+                            fontFamily: "'JetBrains Mono', monospace",
+                            backgroundColor: isDarkMode ? "#151520" : "#fcfcfc",
+                            color: isDarkMode ? "#ffffff" : "#333333",
+                            height: "100%",
+                            borderRadius: "0",
+                            lineHeight: "1.5rem",
+                          }}
+                          className="w-full outline-none resize-none h-full"
+                          data-color-mode={isDarkMode ? "dark" : "light"}
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
