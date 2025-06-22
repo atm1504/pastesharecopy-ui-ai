@@ -243,8 +243,11 @@ const SnippetView: React.FC = () => {
       swift: "swift",
     };
 
-    const extension = fileExtensions[snippet.language] || "txt";
-    const filename = `snippet.${extension}`;
+    // Normalize language to lowercase for extension lookup
+    const extension = fileExtensions[snippet.language?.toLowerCase()] || "txt";
+    // Use a safe version of the title for the filename
+    const safeTitle = snippet.title ? snippet.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() : 'snippet';
+    const filename = `${safeTitle}.${extension}`;
 
     const blob = new Blob([snippet.content], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
