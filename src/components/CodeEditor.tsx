@@ -1093,7 +1093,10 @@ const PasteCodeEditor: React.FC = () => {
     setCode(e.target.value);
   };
 
-  const handleSubmit = async (values: FormValues) => {
+  const handleSubmit = async (
+    values: FormValues,
+    action: "create" | "update" = "create"
+  ) => {
     if (!code.trim()) {
       toast({
         title: "Error",
@@ -1106,13 +1109,13 @@ const PasteCodeEditor: React.FC = () => {
     setIsGeneratingLink(true);
 
     try {
-      if (snippetId) {
+      if (action === "update" && snippetId) {
         // If we have a snippetId, update the existing snippet
         const updateData: UpdateSnippetRequest = {
           snippetId,
           code,
           language,
-          password: values.editPassword,
+          password: editPassword ?? undefined,
         };
 
         const result = await updateSnippet(updateData);
@@ -1142,6 +1145,7 @@ const PasteCodeEditor: React.FC = () => {
         setSnippetId(result.snippetId);
         setGeneratedLink(fullUrl);
         setRemainingLinks(result.remainingLinks);
+        setEditPassword(null);
 
         toast({
           title: "Success",
@@ -1400,12 +1404,6 @@ const PasteCodeEditor: React.FC = () => {
         variant: "destructive",
       });
     }
-  };
-
-  // Handle button click for form submission
-  const handleButtonClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    form.handleSubmit(handleSubmit)();
   };
 
   return (
@@ -1675,7 +1673,9 @@ const PasteCodeEditor: React.FC = () => {
 
                 <Form {...form}>
                   <form
-                    onSubmit={form.handleSubmit(handleSubmit)}
+                    onSubmit={form.handleSubmit((values) =>
+                      handleSubmit(values, "create")
+                    )}
                     className="space-y-4"
                   >
                     <div className="flex flex-wrap gap-4">
@@ -1765,7 +1765,11 @@ const PasteCodeEditor: React.FC = () => {
 
                     <div className="flex gap-2">
                       <Button
-                        onClick={handleButtonClick}
+                        onClick={() =>
+                          form.handleSubmit((values) =>
+                            handleSubmit(values, "create")
+                          )()
+                        }
                         type="button"
                         className="gap-2 bg-primary hover:bg-primary/90 text-sm h-10"
                         disabled={isGeneratingLink || !code.trim()}
@@ -1776,7 +1780,11 @@ const PasteCodeEditor: React.FC = () => {
 
                       {snippetId && user && (
                         <Button
-                          onClick={handleButtonClick}
+                          onClick={() =>
+                            form.handleSubmit((values) =>
+                              handleSubmit(values, "update")
+                            )()
+                          }
                           type="button"
                           className="gap-2 bg-green-600 hover:bg-green-700 text-sm h-10"
                           disabled={isGeneratingLink || !code.trim()}
