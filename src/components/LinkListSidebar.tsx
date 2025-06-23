@@ -51,6 +51,25 @@ export const LinkListSidebar: React.FC<LinkListSidebarProps> = ({
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
 
+  const isToday = (someDate: Date) => {
+    const today = new Date();
+    return (
+      someDate.getDate() === today.getDate() &&
+      someDate.getMonth() === today.getMonth() &&
+      someDate.getFullYear() === today.getFullYear()
+    );
+  };
+
+  const snippetsCreatedToday = snippets.filter((snippet) => {
+    if (!snippet.createdAt) return false;
+    try {
+      const creationDate = new Date(snippet.createdAt);
+      return isToday(creationDate);
+    } catch {
+      return false;
+    }
+  }).length;
+
   const fetchSnippets = useCallback(async (page: number = 1) => {
     setLoading(true);
     setError(null);
@@ -132,16 +151,19 @@ export const LinkListSidebar: React.FC<LinkListSidebarProps> = ({
     return "bg-green-500";
   };
 
+  const isPremiumUser =
+    profile?.subscription?.plan && profile.subscription.plan !== "free";
+
   const getUserTypeLabel = () => {
     if (!profile) return t("usage.userType.anonymous");
-    if (profile.subscription?.plan) return t("usage.userType.premium");
+    if (isPremiumUser) return t("usage.userType.premium");
     if (profile.isAuthenticated) return t("usage.userType.free");
     return t("usage.userType.anonymous");
   };
 
   const getDailyLimit = () => {
     if (!profile || !profile.dailyLimit) return 10; // Default for free users
-    if (profile.dailyLimit === -1) return -1; // Unlimited
+    if (isPremiumUser || profile.dailyLimit === -1) return -1; // Unlimited
     return profile.dailyLimit;
   };
 
@@ -152,14 +174,14 @@ export const LinkListSidebar: React.FC<LinkListSidebarProps> = ({
 
   const getUsedToday = () => {
     if (!profile) return 0;
-    const limit = profile.dailyLimit || 10;
-    const available = profile.availableLinks || 0;
-    return limit === -1 ? 0 : Math.max(0, limit - available);
+    return isPremiumUser ? snippetsCreatedToday : snippetsCreatedToday;
   };
 
   const getRemaining = () => {
     if (!profile) return 0;
-    return profile.availableLinks || 0;
+    const limit = getDailyLimit();
+    if (limit === -1) return -1; // Unlimited
+    return Math.max(0, limit - getUsedToday());
   };
 
   return (
@@ -190,19 +212,15 @@ export const LinkListSidebar: React.FC<LinkListSidebarProps> = ({
                     <span className="text-muted-foreground">
                       {getUserTypeLabel()}
                     </span>
-                    <Badge
-                      variant={
-                        profile.subscription?.plan ? "default" : "secondary"
-                      }
-                    >
-                      {profile.subscription?.plan
+                    <Badge variant={isPremiumUser ? "default" : "secondary"}>
+                      {isPremiumUser
                         ? t("usage.unlimited")
                         : `${getUsedToday()}/${getDailyLimitDisplay()}`}
                     </Badge>
                   </div>
 
                   {/* Show gaming bonus if user has earned extra links */}
-                  {!profile.subscription?.plan &&
+                  {!isPremiumUser &&
                     getDailyLimit() > 10 &&
                     getDailyLimit() !== -1 && (
                       <div className="text-xs text-green-600 dark:text-green-400 mt-1">
@@ -211,7 +229,7 @@ export const LinkListSidebar: React.FC<LinkListSidebarProps> = ({
                     )}
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {profile.dailyLimit !== -1 && (
+                  {!isPremiumUser && (
                     <div className="space-y-2">
                       <Progress value={getUsagePercentage()} className="h-2" />
                       <div className="flex justify-between text-xs text-muted-foreground">
@@ -219,7 +237,8 @@ export const LinkListSidebar: React.FC<LinkListSidebarProps> = ({
                           {t("usage.used")}: {getUsedToday()}
                         </span>
                         <span>
-                          {t("usage.remaining")}: {getRemaining()}
+                          {t("usage.remaining")}:{" "}
+                          {getRemaining() === -1 ? "Unlimited" : getRemaining()}
                         </span>
                       </div>
                     </div>
@@ -239,9 +258,7 @@ export const LinkListSidebar: React.FC<LinkListSidebarProps> = ({
                         {t("usage.availableLinks")}
                       </div>
                       <div className="font-medium">
-                        {profile?.subscription?.plan
-                          ? t("usage.unlimited")
-                          : profile?.availableLinks || 0}
+                        {isPremiumUser ? t("usage.unlimited") : getRemaining()}
                       </div>
                     </div>
                   </div>

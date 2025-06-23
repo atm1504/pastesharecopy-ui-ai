@@ -3,7 +3,6 @@ import React, { createContext, useContext, useState, ReactNode } from "react";
 interface GamePointsContextType {
   sessionGamePoints: number;
   setSessionGamePoints: React.Dispatch<React.SetStateAction<number>>;
-  resetSessionGamePoints: () => void;
 }
 
 const GamePointsContext = createContext<GamePointsContextType | undefined>(
@@ -13,16 +12,11 @@ const GamePointsContext = createContext<GamePointsContextType | undefined>(
 export function GamePointsProvider({ children }: { children: ReactNode }) {
   const [sessionGamePoints, setSessionGamePoints] = useState<number>(0);
 
-  const resetSessionGamePoints = () => {
-    setSessionGamePoints(0);
-  };
-
   return (
     <GamePointsContext.Provider
       value={{
         sessionGamePoints,
         setSessionGamePoints,
-        resetSessionGamePoints,
       }}
     >
       {children}
