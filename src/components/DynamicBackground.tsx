@@ -8,7 +8,7 @@ import {
   DialogTrigger,
 } from "./ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { submitGameScore } from "@/lib/api";
+import { submitGameScore, getGameStats } from "@/lib/api";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useGamePoints } from "@/contexts/GamePointsContext";
 
@@ -81,14 +81,14 @@ const DynamicBackground: React.FC = () => {
   const { resolvedTheme } = useTheme();
   const isDarkMode = resolvedTheme === "dark";
   const { toast } = useToast();
-  const { refreshProfile } = useAuthContext();
-  const { sessionGamePoints, setSessionGamePoints, resetSessionGamePoints } =
-    useGamePoints();
+  const { profile, refreshProfile } = useAuthContext();
+  const { sessionGamePoints, setSessionGamePoints } = useGamePoints();
 
   // State for game elements
   const [showScore, setShowScore] = useState(false);
   const [showTutorial, setShowTutorial] = useState(true);
   const [highScore, setHighScore] = useState(0);
+  const [isGameReady, setGameReady] = useState(false);
 
   // Refs to store animation state
   const blobsRef = useRef<Blob[]>([]);
@@ -353,8 +353,8 @@ const DynamicBackground: React.FC = () => {
         x: Math.random() * window.innerWidth,
         y: Math.random() * window.innerHeight,
         radius: Math.random() * 100 + 150,
-        velX: (Math.random() - 0.5) * 0.3,
-        velY: (Math.random() - 0.5) * 0.3,
+        velX: (Math.random() - 0.5) * 0.2,
+        velY: (Math.random() - 0.5) * 0.2,
         growth: 0,
         color: `hsla(${hue}, ${saturation}%, ${lightness}%, 1)`,
         opacity:
@@ -375,7 +375,7 @@ const DynamicBackground: React.FC = () => {
 
     // Reset game state with session data
     gameStateRef.current = {
-      score: 0,
+      ...gameStateRef.current, // Keep existing score if loaded
       collectiblesFound: 0,
       totalCollectibles: 0,
       lastScoreUpdate: 0,
@@ -383,7 +383,7 @@ const DynamicBackground: React.FC = () => {
       comboTimer: 0,
       sessionId: sessionId,
       sessionStartTime: sessionStartTime,
-      lastSubmissionScore: 0,
+      lastSubmissionScore: gameStateRef.current.score, // Persist score across sessions in the same day
       maxComboReached: 1,
     };
 
@@ -431,8 +431,8 @@ const DynamicBackground: React.FC = () => {
       x: Math.random() * (window.innerWidth - 200) + 100,
       y: Math.random() * (window.innerHeight - 200) + 100,
       radius: size,
-      velX: (Math.random() - 0.5) * 0.8,
-      velY: (Math.random() - 0.5) * 0.8,
+      velX: (Math.random() - 0.5) * 0.6,
+      velY: (Math.random() - 0.5) * 0.6,
       growth: 0,
       color: collectibleColor,
       opacity: 0.9,
@@ -744,8 +744,8 @@ const DynamicBackground: React.FC = () => {
 
         // Extra bouncy behavior for collectibles
         if (Math.random() < 0.01) {
-          blob.velX = (Math.random() - 0.5) * 1.5;
-          blob.velY = (Math.random() - 0.5) * 1.5;
+          blob.velX = (Math.random() - 0.5) * 0.75;
+          blob.velY = (Math.random() - 0.5) * 0.75;
         }
 
         // Pulsate collectible for visibility
@@ -1061,8 +1061,29 @@ const DynamicBackground: React.FC = () => {
     animationFrameRef.current = requestAnimationFrame(drawBlobs);
   };
 
-  // Effect for initial setup and theme changes
+  // Effect to load game state
   useEffect(() => {
+    const loadDailyGameState = async () => {
+      // Reset readiness on profile change
+      setGameReady(false);
+
+      if (profile) {
+        // Use the dailyGamePoints from the profile (this is the daily score that resets each day)
+        const dailyScore = profile.dailyGamePoints || 0;
+        gameStateRef.current.score = dailyScore;
+        gameStateRef.current.lastSubmissionScore = dailyScore;
+        setSessionGamePoints(dailyScore);
+        setGameReady(true);
+      }
+    };
+
+    loadDailyGameState();
+  }, [profile]);
+
+  // Effect for canvas setup, dependent on game readiness and theme
+  useEffect(() => {
+    if (!isGameReady) return;
+
     // Force cleanup of existing animation on theme change
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
@@ -1079,9 +1100,6 @@ const DynamicBackground: React.FC = () => {
       setHighScore(parseInt(savedHighScore, 10));
     }
 
-    // Reset sessionGamePoints to 0 on mount
-    resetSessionGamePoints();
-
     return () => {
       // Submit final score before cleanup
       const gameState = gameStateRef.current;
@@ -1097,7 +1115,7 @@ const DynamicBackground: React.FC = () => {
       cancelAnimationFrame(animationFrameRef.current);
       clearTimeout(collectibleTimerRef.current);
     };
-  }, [resolvedTheme]); // Depend on resolvedTheme to properly handle theme changes
+  }, [isGameReady, resolvedTheme]);
 
   // Add session cleanup for inactive users
   useEffect(() => {

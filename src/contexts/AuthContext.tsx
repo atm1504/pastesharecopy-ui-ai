@@ -12,6 +12,7 @@ interface UserProfile {
     validUntil?: string;
   };
   gamePoints: number;
+  dailyGamePoints?: number;
   availableLinks: number;
   dailyLimit?: number;
   totalLinksCreated: number;
