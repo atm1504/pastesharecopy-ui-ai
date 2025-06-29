@@ -193,20 +193,6 @@ const StatsSection: React.FC = () => {
           <h2 className="text-3xl font-bold text-center bg-gradient-to-r from-primary to-indigo-500 bg-clip-text text-transparent drop-shadow-sm">
             {t("stats.title", "Our Impact in Numbers")}
           </h2>
-          
-          {/* Refresh button */}
-          <button
-            onClick={fetchStats}
-            disabled={loading}
-            className="p-2 rounded-lg border border-border/50 bg-card/50 backdrop-blur-sm hover:bg-card/80 transition-colors disabled:opacity-50"
-            title="Refresh statistics"
-          >
-            {loading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <RefreshCw className="h-4 w-4" />
-            )}
-          </button>
         </div>
 
         {/* Error state */}
