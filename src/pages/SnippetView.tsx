@@ -365,6 +365,69 @@ const SnippetView: React.FC = () => {
     );
   }
 
+  // Show password dialog if required, even if error is set
+  if (showPasswordDialog) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <NavBar />
+        <main className="flex-1 flex items-center justify-center">
+          <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Lock className="h-5 w-5" />
+                  Password Protected Snippet
+                </DialogTitle>
+                <DialogDescription>
+                  This snippet is password protected. Please enter the password to view its content.
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handlePasswordSubmit}>
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="password" className="text-right">
+                      Password
+                    </Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="col-span-3"
+                      placeholder="Enter password"
+                      autoFocus
+                    />
+                  </div>
+                  {passwordError && (
+                    <div className="text-sm text-destructive text-center">
+                      {passwordError}
+                    </div>
+                  )}
+                </div>
+                <DialogFooter>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setShowPasswordDialog(false);
+                      navigate("/");
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={!password.trim() || loading}>
+                    {loading ? "Verifying..." : "Submit"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </main>
+        <FooterSection />
+      </div>
+    );
+  }
+
   if (error || !snippet) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -606,60 +669,6 @@ const SnippetView: React.FC = () => {
           </CardContent>
         </Card>
       </main>
-
-      {/* Password Dialog */}
-      <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Lock className="h-5 w-5" />
-              Password Protected Snippet
-            </DialogTitle>
-            <DialogDescription>
-              This snippet is password protected. Please enter the password to
-              view its content.
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handlePasswordSubmit}>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="password" className="text-right">
-                  Password
-                </Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="col-span-3"
-                  placeholder="Enter password"
-                  autoFocus
-                />
-              </div>
-              {passwordError && (
-                <div className="text-sm text-destructive text-center">
-                  {passwordError}
-                </div>
-              )}
-            </div>
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  setShowPasswordDialog(false);
-                  navigate("/");
-                }}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={!password.trim() || loading}>
-                {loading ? "Verifying..." : "Submit"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
 
       <FooterSection />
     </div>
