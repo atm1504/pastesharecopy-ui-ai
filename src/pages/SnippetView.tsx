@@ -170,7 +170,7 @@ const SnippetView: React.FC = () => {
 
       // Show password dialog if permission-denied and password is required
       if (
-        errorCode === "permission-denied" &&
+        errorCode === "permission-denied" ||
         (errorMessage.toLowerCase().includes("password") || errorMessage.toLowerCase().includes("protected"))
       ) {
         setIsPasswordProtected(true);
