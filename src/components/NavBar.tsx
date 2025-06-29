@@ -36,11 +36,8 @@ const NavBar: React.FC<NavBarProps> = ({ onViewLinksClick }) => {
     <div className="flex items-center justify-between p-4 border-b">
       <div className="flex items-center space-x-2">
         <Link to="/" className="text-2xl font-bold">
-          PasteShareCopy
+          Paste.Share.Copy.
         </Link>
-        <span className="ml-2 px-1.5 py-0.5 text-xs dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded">
-          Beta
-        </span>
       </div>
       <div className="flex items-center space-x-4">
         {onViewLinksClick && (
