@@ -141,35 +141,46 @@ const SnippetView: React.FC = () => {
     }
 
     try {
-      console.log("Loading snippet for shortUrl:", shortUrl);
       const response = await getSnippet(shortUrl, passwordAttempt);
-      console.log("Received snippet response:", response);
 
       if (response && response.snippet) {
         setSnippet(response.snippet);
         setIsPasswordProtected(false);
         setShowPasswordDialog(false);
         setPasswordError("");
-        console.log("Snippet content:", response.snippet.content);
-        console.log(
-          "Snippet content length:",
-          response.snippet.content?.length
-        );
       } else {
         setError("No snippet data received");
       }
     } catch (err: unknown) {
-      console.error("Error loading snippet:", err);
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to load snippet";
+      let errorCode = "";
+      let errorMessage = "Failed to load snippet";
+      if (typeof err === "object" && err !== null) {
+        const errObj = err as Record<string, unknown>;
+        if ("code" in errObj && typeof errObj.code === "string") {
+          errorCode = errObj.code;
+        }
+        if ("message" in errObj && typeof errObj.message === "string") {
+          errorMessage = errObj.message;
+        } else if (err instanceof Error) {
+          errorMessage = err.message;
+        }
+      } else if (err instanceof Error) {
+        errorMessage = err.message;
+      }
 
-      // Check if it's a password-related error
-      if (errorMessage.includes("password protected")) {
+      // Show password dialog if permission-denied and password is required
+      if (
+        errorCode === "permission-denied" &&
+        (errorMessage.toLowerCase().includes("password") || errorMessage.toLowerCase().includes("protected"))
+      ) {
         setIsPasswordProtected(true);
         setShowPasswordDialog(true);
         setPasswordError("");
-      } else if (errorMessage.includes("Incorrect password")) {
+        // Do NOT setError here!
+      } else if (errorMessage.toLowerCase().includes("incorrect password")) {
         setPasswordError("Incorrect password. Please try again.");
+      } else if (errorCode === "not-found" || errorMessage.toLowerCase().includes("not found")) {
+        setError("Snippet not found");
       } else {
         setError(errorMessage);
       }
