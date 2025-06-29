@@ -176,6 +176,7 @@ const SnippetView: React.FC = () => {
         setIsPasswordProtected(true);
         setShowPasswordDialog(true);
         setPasswordError("");
+        setError(""); // Clear error so only password dialog is shown
         // Do NOT setError here!
       } else if (errorMessage.toLowerCase().includes("incorrect password")) {
         setPasswordError("Incorrect password. Please try again.");
