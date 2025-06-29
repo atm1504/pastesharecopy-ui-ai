@@ -1797,47 +1797,6 @@ const PasteCodeEditor: React.FC = () => {
                   </form>
                 </Form>
               </div>
-
-              <div className="bg-card rounded-lg border shadow-sm p-4">
-                <h3 className="text-sm font-semibold mb-2 pb-2 border-b">
-                  {t("editor.stats")}
-                </h3>
-                <div className="grid grid-cols-2 gap-x-8 gap-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground flex items-center">
-                      <Eye size={15} className="mr-1.5" /> {t("editor.views")}
-                    </span>
-                    <span className="text-sm font-medium">
-                      {pasteStats.views}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground flex items-center">
-                      <FileText size={15} className="mr-1.5" />{" "}
-                      {t("general.language")}
-                    </span>
-                    <span className="text-sm font-medium">
-                      {languageOptions.find((l) => l.value === language)?.label}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground flex items-center">
-                      <Clock size={15} className="mr-1.5" />{" "}
-                      {t("editor.justNow")}
-                    </span>
-                    <span className="text-sm font-medium">
-                      {t("editor.justNow")}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground flex items-center">
-                      <Share2 size={15} className="mr-1.5" />{" "}
-                      {t("editor.shares", "Shares")}
-                    </span>
-                    <span className="text-sm font-medium">4.7M+</span>
-                  </div>
-                </div>
-              </div>
             </div>
           </Tabs>
         </div>
