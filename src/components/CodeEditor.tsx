@@ -1625,7 +1625,8 @@ const PasteCodeEditor: React.FC = () => {
               </TabsContent>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-3">
+            {/* Share Options section - now full width */}
+            <div className="w-full">
               <div className="bg-card rounded-lg border shadow-sm p-4">
                 <div className="mb-3 pb-3 border-b">
                   <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
